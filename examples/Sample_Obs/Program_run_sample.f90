@@ -13,11 +13,12 @@ Program Coupling_metrics
        use RH_Tend_Mod
        use Mixing_Diag_Mod
        use HCF_vars_calc
+       use Soil_Memory_Mod
        implicit none
 
-   !   
-   ! Local variables 
-
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+   ! PBL and surface flux routine declaractions ! 
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    ! dimension sizes
    integer, parameter                        ::  nlev  =  23
    integer, parameter                        ::  ntim  =  8
@@ -55,6 +56,19 @@ Program Coupling_metrics
    ! Format statements
    character(len=24), parameter :: FMT1 = "(4(F12.4,2x))"   
    character(len=24), parameter :: FMT2 = "(4(A,2x))"   
+
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+   ! Surface and soil moisture routine declaractions ! 
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   integer, parameter                        ::  nhr   =  2161
+   integer, parameter                        ::  nyr   =  16
+   real(4), parameter                        ::  miss  =  -99999.
+
+   integer                                   ::  unit_soilm
+   real(4), dimension(nyr)                   ::  soil_memory
+   real(4), dimension(nhr,nyr)               ::  soil_moisture
+   
 
 
 !---------------------------------------------------------------------------------
@@ -101,6 +115,9 @@ Program Coupling_metrics
          dry     =  missing
          drh_dt  =  missing
 
+         soil_moisture  =  miss
+         soil_memory    =  miss
+
 
          !********************************  
          !***                               
@@ -121,6 +138,7 @@ Program Coupling_metrics
          end do
          close(unit_fluxes)
 
+
          !********************************  
          !***                               
          !***    Read sample flux and surface data
@@ -134,6 +152,26 @@ Program Coupling_metrics
          close(unit_fluxes)
          where( p2m .ne.missing )  p2m  =  p2m  * 1e2
          where( pblh.ne.missing )  pblh =  pblh * 1e3
+
+
+
+         !********************************  
+         !***                               
+         !***    Read sample soil moisture data
+         !***                               
+         !********************************  
+         unit_soilm  =  12
+         open( unit=unit_soilm, file='Sample_soilm.txt' )
+         do tt=1,nhr
+            read(unit_soilm,*) soil_moisture(tt,1 ), soil_moisture(tt,2 ), soil_moisture(tt,3 ), soil_moisture(tt,4 ), &
+                               soil_moisture(tt,5 ), soil_moisture(tt,6 ), soil_moisture(tt,7 ), soil_moisture(tt,8 ), &
+                               soil_moisture(tt,9 ), soil_moisture(tt,10), soil_moisture(tt,11), soil_moisture(tt,12), &
+                               soil_moisture(tt,13), soil_moisture(tt,14), soil_moisture(tt,15), soil_moisture(tt,16)
+         end do
+         close(unit_soilm)
+
+
+
 
 write(*,*)
 write(*,*)
@@ -162,7 +200,11 @@ write(*,*) "2-m Specific Humidity"
 write(*,*) q2m
 write(*,*)
 write(*,*)
-write(*,*)
+!write(*,*) "Soil Moisture [select]"
+!write(*,*) soil_moisture(:,1),soil_moisture(:,16)
+!write(*,*)
+!write(*,*)
+
 
          !---------------------------------------------
          !---
@@ -210,6 +252,16 @@ write(*,*)
                              pblh     ,  shf    ,  lhf    ,  8.*3600.,     &
                              ef       ,  ne     ,                          &
                              heating  ,  growth ,  dry    ,  drh_dt , missing  )
+
+
+
+         !---------------------------------------------
+         !---
+         !--- Soil Moisture Memory Section
+         !---
+         !---------------------------------------------
+         call soilm_memory ( nyr,  nhr,  soil_moisture,  soil_memory,  miss )
+
 
 
 
@@ -265,6 +317,21 @@ write(*,*)
          write(*,*)
          write(*,*)
          write(*,*)
+
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!      Soil Moisture Memory Output      !!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,FMT2) "       Memory in hours "
+         do tt=1,nyr
+            write(*,*)  tt, soil_memory(tt), soil_memory(tt)/24
+         end do
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+
+
          write(*,*)
          write(*,*)
          write(*,*)

@@ -1,3 +1,6 @@
+subroutine mixing_diag_daily( dim2      , ntim    , nday   ,  nhr                               ,  &
+                              t2m       , psfc    , q2m    ,  pbl_h  , shf    , lhf    , dt     ,  &
+                              shf_ent   , lhf_ent , shf_sfc,  lhf_sfc, shf_tot, lhf_tot, missing   )
 !---------------------------------------------------------------------------------
 ! Purpose:
 !
@@ -22,19 +25,6 @@
 ! Converted to F90 module        -- A.B. Tawfik on Apr 2015
 !
 !---------------------------------------------------------------------------------
-module Mixing_Diag_Mod
-
-     !
-     ! subroutine name 
-     !
-     public mixing_diag_daily
-
-!---------------------------------------------------------------------------------
-contains
-!---------------------------------------------------------------------------------
-
-
-
 !---------------------------------------------------------------------------------
 !
 ! subroutines:  calculates mixing diagram variables using the INCREMENTAL more precise approach
@@ -42,9 +32,6 @@ contains
 !               Output is dimensioned:  
 !               (days, spatial dimension like lat/lon)
 !---------------------------------------------------------------------------------
-  subroutine mixing_diag_daily( dim2      , ntim    , nday   ,  nhr                               ,  &
-                                t2m       , psfc    , q2m    ,  pbl_h  , shf    , lhf    , dt     ,  &
-                                shf_ent   , lhf_ent , shf_sfc,  lhf_sfc, shf_tot, lhf_tot, missing   )
    implicit none
 
 !
@@ -321,7 +308,3 @@ contains
       return
 
 end subroutine mixing_diag_daily
-
-
-
-end module Mixing_Diag_Mod

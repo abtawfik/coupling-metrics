@@ -62,8 +62,8 @@ contains
    real(4), parameter   ::  sample_limit = 20.          !*** # of valid days needed to calculate memory
 
    integer                           ::  tt, n1
-   integer, dimension(     dim2)     ::  nsample
-   integer, dimension(     dim2)     ::  nsample_lagged
+   real(4), dimension(     dim2)     ::  nsample
+   real(4), dimension(     dim2)     ::  nsample_lagged
    real(4), dimension(ntim,dim2)     ::  soilm_mean                       
    real(4), dimension(ntim,dim2)     ::  soilm_diff     
    real(4), dimension(     dim2)     ::  soilm_std      
@@ -95,17 +95,6 @@ contains
           return
       end if
 
-      !-----------------------------------------------------------------------------
-      !-- Check sample size is at least 20 days of data
-      !-- !!!!! CURRENTLY THIS IS ARBITRARY ---  NEED BETTER ROBUSTNESS TEST  !!!!!!
-      !-----------------------------------------------------------------------------
-      nsample  =  count(soilm.ne.missing, DIM=1)
-      if( all( nsample.lt.sample_limit ) )  then
-          write(*,*)  " ----  Sample size is too small for all points:  less than 20 non-missing values "
-          return
-      end if
-
-
       !----------------------------------------------------------------------------------
       !-- initialize working arrays
       !----------------------------------------------------------------------------------
@@ -126,7 +115,6 @@ contains
       do tt=1,ntim
          time_ind(tt,:)  =  tt * 1.
       end do
-
 
       !----------------------------------------------------------------------------------
       !-- Sample covariance equation without dividing through by sample size:
@@ -149,6 +137,7 @@ contains
       !-- expand to 2-dimensional to simplify subtraction and product 
       !--                                                                          
       !----------------------------------------------------------------------------------
+      nsample  =  count(soilm.ne.missing, DIM=1) * 1.
       where( nsample.gt.0 )
           soilm_mean(1,:)  =  sum( soilm, DIM=1, MASK=soilm.ne.missing )  /  nsample 
       endwhere
@@ -178,14 +167,9 @@ contains
          soilm_lagged    =  missing
          lagged_mean     =  missing
          lagged_diff     =  missing
+         nsample_lagged  =  missing
          covar           =  missing
          lagged_std      =  missing
-         nsample_lagged  =  int(missing)
-
-         !----------------------------------------------------------------------------
-         !-- Exit loop if less than 20 pts are being evaluated for lagged correlation
-         !----------------------------------------------------------------------------
-         if( ntim-tt.le.20 ) exit
 
          !------------------------------
          !-- shift by one time step
@@ -195,11 +179,11 @@ contains
          !------------------------------
          !-- Get mean of lagged soil moisture
          !------------------------------
-         nsample_lagged   =  count(soilm_lagged.ne.missing, DIM=1)
+         nsample_lagged   =  count(soilm_lagged.ne.missing, DIM=1) * 1.
          where( nsample_lagged.gt.0 )
-             lagged_mean(1,:)  =  sum( soilm_lagged, DIM=1, MASK=soilm_lagged.ne.missing )  /  nsample_lagged
+            lagged_mean(1,:)  =  sum( soilm_lagged, DIM=1, MASK=soilm_lagged.ne.missing )  /  nsample_lagged
          endwhere
-         do n1=2,ntim     !try using spread to make use of intrinsic fortran functions -- this is more generic though
+         do n1=2,ntim 
             lagged_mean(n1,:)  =  lagged_mean(1,:)
          end do
 
@@ -227,6 +211,10 @@ contains
             correlation(tt,:)  =  covar / (lagged_std * soilm_std)
          endwhere
 
+do n1=1,1
+   write(*,*) "------     ",n1,tt,correlation(tt,n1), covar(n1), lagged_std(n1), soilm_std(n1)
+end do
+
          !----------------------------------------------------------------------------------------------------
          !-- if all of the correlations for each year are below the threshold then no need to iterate further
          !-- therefore exit for efficieny 
@@ -245,7 +233,7 @@ contains
       endwhere 
       smemory  =  minloc( time_ind, DIM=1, MASK=correlation_diff.le.0 )
 
-
+stop
       return
 
 

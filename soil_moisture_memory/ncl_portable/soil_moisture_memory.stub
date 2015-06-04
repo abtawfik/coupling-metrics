@@ -1,0 +1,8 @@
+C NCLFORTSTART
+subroutine soilm_memory( dim2,  ntim,  soilm,  smemory,  missing )
+   integer  dim2 
+   integer  ntim 
+   real     missing       
+   real     soilm  (ntim,dim2)
+   real     smemory(dim2)
+C NCLEND

@@ -1,4 +1,3 @@
-
 !---------------------------------------------------------------------------------------------
 !
 !  Purpose:  This program runs a quick sample data test against several observed profiles from 
@@ -27,14 +26,15 @@ Program Coupling_metrics
    integer                                   ::  tt, zz
 
    ! file name prefix for each file that is looped over
-   character(len=256)                        ::  input_profile, input_fluxes
    integer                                   ::  unit_profile , unit_fluxes
+
+   ! Used for clocking cpu-time
+   real(4)                                   ::  start, finish
 
    ! Input variables read in from file 
    real(4), dimension(ntim,nlev)             ::  tlev, plev, hlev, qlev
    real(4), dimension(ntim,1)                ::  t2m , p2m , h2m , q2m
    real(4), dimension(ntim,1)                ::  shf , lhf , pblh
-
 
    real(4), dimension(ntim)                  :: tbm    ,  bclh   , bclp ,  tdef,    &
                                                 hadv   ,  tranp  , tadv ,           &
@@ -57,7 +57,6 @@ Program Coupling_metrics
    character(len=24), parameter :: FMT1 = "(4(F12.4,2x))"   
    character(len=24), parameter :: FMT2 = "(4(A,2x))"   
 
-
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    ! Surface and soil moisture routine declaractions ! 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -67,9 +66,9 @@ Program Coupling_metrics
 
    integer                                   ::  unit_soilm
    real(4), dimension(nyr)                   ::  soil_memory
+   real(4), dimension(nyr,nhr)               ::  soil_in
    real(4), dimension(nhr,nyr)               ::  soil_moisture
-   
-
+   real(4), dimension(nhr,nyr)               ::  soil_memory_all
 
 !---------------------------------------------------------------------------------
 
@@ -136,7 +135,7 @@ Program Coupling_metrics
                                  yr7,mn7,hr7,plev(7,zz),hlev(7,zz),tlev(7,zz),qlev(7,zz)
 
          end do
-         close(unit_fluxes)
+         close(unit_profile)
 
 
          !********************************  
@@ -161,49 +160,10 @@ Program Coupling_metrics
          !***                               
          !********************************  
          unit_soilm  =  12
-         open( unit=unit_soilm, file='Sample_soilm.txt' )
-         do tt=1,nhr
-            read(unit_soilm,*) soil_moisture(tt,1 ), soil_moisture(tt,2 ), soil_moisture(tt,3 ), soil_moisture(tt,4 ), &
-                               soil_moisture(tt,5 ), soil_moisture(tt,6 ), soil_moisture(tt,7 ), soil_moisture(tt,8 ), &
-                               soil_moisture(tt,9 ), soil_moisture(tt,10), soil_moisture(tt,11), soil_moisture(tt,12), &
-                               soil_moisture(tt,13), soil_moisture(tt,14), soil_moisture(tt,15), soil_moisture(tt,16)
-         end do
-         close(unit_soilm)
-
-
-
-
-write(*,*)
-write(*,*)
-write(*,*)
-write(*,*) "Sensible Heat Fluxes"
-write(*,*) shf
-write(*,*)
-write(*,*)
-write(*,*)
-write(*,*) "Latent Heat Fluxes"
-write(*,*) lhf
-write(*,*)
-write(*,*)
-write(*,*)
-write(*,*) "Boundary Layer Height"
-write(*,*) pblh/1e3
-write(*,*)
-write(*,*)
-write(*,*)
-write(*,*) "2-m Temperature"
-write(*,*) t2m
-write(*,*)
-write(*,*)
-write(*,*)
-write(*,*) "2-m Specific Humidity"
-write(*,*) q2m
-write(*,*)
-write(*,*)
-!write(*,*) "Soil Moisture [select]"
-!write(*,*) soil_moisture(:,1),soil_moisture(:,16)
-!write(*,*)
-!write(*,*)
+         open ( unit=unit_soilm, file='Sample_soilm.txt' )
+         read ( unit_soilm,*)    soil_in
+         close( unit_soilm  )
+         soil_moisture = transpose(soil_in)
 
 
          !---------------------------------------------
@@ -214,6 +174,7 @@ write(*,*)
          !**********************************    
          !*** Loop over time
          !**********************************    
+         call cpu_time(start)
          do tt = 1,ntim
 
                     !---------------------------------------------
@@ -228,6 +189,8 @@ write(*,*)
 
 
          end do  !*** end of time loop
+         call cpu_time(finish)
+         print '("Heated Condensation Framework   =   ",f10.3," seconds.")',finish-start
 
 
 
@@ -236,23 +199,30 @@ write(*,*)
          !--- Mixing Diagrams Section
          !---
          !---------------------------------------------
+         call cpu_time(start)
          call mixing_diag_daily ( 1          , ntim       , 1          ,  8       ,          &  
                                   t2m (:,1:1), p2m(:,1:1) , q2m(:,1:1) ,                     &
                                   pblh(:,1:1), shf(:,1:1) , lhf(:,1:1) ,  8.*3600.,          &
                                   sh_ent     , lh_ent     ,                                  &
                                   sh_sfc     , lh_sfc     , sh_tot     ,  lh_tot,  missing )
+         call cpu_time(finish)
+         print '("Mixing Diagrams   =   ",f10.3," seconds.")',finish-start
+
 
          !---------------------------------------------
          !---
          !--- Relative Humidity Tendency Section
          !---
          !---------------------------------------------
+         call cpu_time(start)
          call rh_tend_calc ( nlev     ,  ntim   ,                          &
                              tlev     ,  qlev   ,  hlev   ,  plev    ,     &
                              pblh     ,  shf    ,  lhf    ,  8.*3600.,     &
                              ef       ,  ne     ,                          &
                              heating  ,  growth ,  dry    ,  drh_dt , missing  )
 
+         call cpu_time(finish)
+         print '("Relative Humidity Tendency   =   ",f10.3," seconds.")',finish-start
 
 
          !---------------------------------------------
@@ -260,11 +230,18 @@ write(*,*)
          !--- Soil Moisture Memory Section
          !---
          !---------------------------------------------
-         call soilm_memory ( nyr,  nhr,  soil_moisture,  soil_memory,  miss )
+         soil_memory_all  =  miss
+         call cpu_time(start)
+         call soilm_memory ( nyr,  nhr,  soil_moisture,  soil_memory_all(1,:),  miss )
+         call cpu_time(finish)
+         print '("Soil Moisture Memory   =   ",f10.3," seconds.")',finish-start
 
 
-
-
+         !---------------------------------------------
+         !---
+         !--- Output for sanity check on each metric
+         !--- 
+         !---------------------------------------------
          write(*,*)
          write(*,*)
          write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
@@ -321,20 +298,21 @@ write(*,*)
          write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
          write(*,*)  "  !!!!!!!!!!!      Soil Moisture Memory Output      !!!!!!!!!!!!  "
          write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
-         write(*,FMT2) "       Memory in hours "
-         do tt=1,nyr
-            write(*,*)  tt, soil_memory(tt), soil_memory(tt)/24
+         write(*,FMT2) "       Memory in days "
+         do tt=1,1
+         do zz=1,nhr
+            write(*,*)  zz, soil_memory_all(zz,tt)/24
+         end do
          end do
          write(*,*)
          write(*,*)
          write(*,*)
          write(*,*)
          write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
 
-
-         write(*,*)
-         write(*,*)
-         write(*,*)
 
 
 end Program Coupling_metrics

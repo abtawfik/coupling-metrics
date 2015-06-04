@@ -1,3 +1,9 @@
+subroutine rh_tend_calc ( nlev     ,  ntim                       ,         &  
+                          tmp_in   ,  qhum_in,  hgt_in,  press_in,         &
+                          pbl_h    ,  shf    ,  lhf   ,  dt      ,         &
+                          ef       ,  ne     ,                             &
+                          pbl_heating ,  pbl_growth, dry_entrain,          &
+                          dRH_estimate,  missing                           )
 !---------------------------------------------------------------------------------
 ! Purpose:
 !
@@ -23,29 +29,11 @@
 ! Original Code -- A.B. Tawfik on Apr 2015
 !
 !---------------------------------------------------------------------------------
-module RH_Tend_Mod
-
-     !
-     ! subroutine name 
-     !
-     public rh_tend_calc      ! the main RH-tendency interface
-
-!---------------------------------------------------------------------------------
-contains
-!---------------------------------------------------------------------------------
-
-
 !---------------------------------------------------------------------------------
 !
 ! subroutines:  main relative humidity tendency calculation routine
 !
 !---------------------------------------------------------------------------------
-  subroutine rh_tend_calc ( nlev     ,  ntim                       ,         &  
-                            tmp_in   ,  qhum_in,  hgt_in,  press_in,         &
-                            pbl_h    ,  shf    ,  lhf   ,  dt      ,         &
-                            ef       ,  ne     ,                             &
-                            pbl_heating ,  pbl_growth, dry_entrain,          &
-                            dRH_estimate,  missing                           )
    implicit none
 !
 ! Input/Output Variables
@@ -610,11 +598,6 @@ contains
          dRH_estimate  =  ((shf0+lhf0) / (rho*Lv*pblh_mid*pbl_qs))  *  (ef + ne*(1.-ef))  *  3600. * 1e2
       endwhere
 
-
       return
 
 end subroutine rh_tend_calc
-
-
-
-end module RH_Tend_Mod

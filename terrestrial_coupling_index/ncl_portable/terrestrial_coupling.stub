@@ -1,0 +1,11 @@
+C NCLFORTSTART
+       subroutine terra_coupling( dim2,  ntim,  soilm,  flux,  tcp,  missing )
+       implicit none
+
+       integer   dim2           
+       integer   ntim           
+       real      missing        
+       real      soilm(ntim,dim2) 
+       real      flux (ntim,dim2) 
+       real      tcp  (     dim2) 
+C NCLEND

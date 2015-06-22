@@ -1,0 +1,13 @@
+C NCLFORTSTART
+      subroutine terra_wrapper( nlon,  nlat,  ntim,  soilm,  flux,  tcp,  missing )
+      implicit none
+
+      integer  nlat, nlon 
+      integer  ntim       
+      real     missing        
+      real     soilm(nlon,nlat,ntim)
+      real     flux (nlon,nlat,ntim)
+      real     tcp  (nlon,nlat)
+C NCLEND
+
+

@@ -13,6 +13,7 @@ Program Coupling_metrics
        use Mixing_Diag_Mod
        use HCF_vars_calc
        use Soil_Memory_Mod
+       use Terrestrial_Coupling_Mod
        implicit none
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
@@ -69,6 +70,19 @@ Program Coupling_metrics
    real(4), dimension(nyr,nhr)               ::  soil_in
    real(4), dimension(nhr,nyr)               ::  soil_moisture
    real(4), dimension(nhr,nyr)               ::  soil_memory_all
+
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+   ! Used for terrestrial Coupling Parameter ! 
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   integer, parameter                        ::  ntim1 =  1350
+
+   integer                                   ::  unit_terra
+   real(4), dimension(ntim1,1)               ::  soilm_terra
+   real(4), dimension(ntim1,1)               ::  shf_terra
+   real(4), dimension(ntim1,1)               ::  lhf_terra
+   real(4), dimension(1)                     ::  tcp_shf, tcp_lhf
+
 
 !---------------------------------------------------------------------------------
 
@@ -166,6 +180,20 @@ Program Coupling_metrics
          soil_moisture = transpose(soil_in)
 
 
+
+         !********************************  
+         !***                               
+         !***    Read sample flux and soil moisture for Terrestrail Coupling Parameter
+         !***                               
+         !********************************  
+         unit_terra  =  14
+         open( unit=unit_terra, file='Sample_tcp.csv' )
+         do tt=1,ntim1
+            read(unit_terra,*) soilm_terra(tt,1), shf_terra(tt,1), lhf_terra(tt,1)
+         end do
+         close(unit_terra)
+
+
          !---------------------------------------------
          !---
          !--- Heated Condensation Section
@@ -237,6 +265,29 @@ Program Coupling_metrics
          print '("Soil Moisture Memory   =   ",f10.3," seconds.")',finish-start
 
 
+
+
+
+         !---------------------------------------------
+         !---
+         !--- Terrestrial Coupling Section
+         !---
+         !---------------------------------------------
+         tcp_shf  =  miss
+         tcp_lhf  =  miss
+         call  cpu_time(start)
+         call  terra_coupling( 1,  ntim1,  soilm_terra,  shf_terra, tcp_shf(1),  miss )
+         call  terra_coupling( 1,  ntim1,  soilm_terra,  lhf_terra, tcp_lhf(1),  miss )
+         call  cpu_time(finish)
+         print '("Terrestrail Coupling Parameter   =   ",f10.3," seconds.")',finish-start
+
+
+
+
+
+
+
+
          !---------------------------------------------
          !---
          !--- Output for sanity check on each metric
@@ -299,11 +350,22 @@ Program Coupling_metrics
          write(*,*)  "  !!!!!!!!!!!      Soil Moisture Memory Output      !!!!!!!!!!!!  "
          write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
          write(*,FMT2) "       Memory in days "
-         do tt=1,1
-         do zz=1,nhr
-            write(*,*)  zz, soil_memory_all(zz,tt)/24
+         do tt=1,nyr
+            write(*,*)  tt, soil_memory_all(1,tt)/24
          end do
-         end do
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!      Terrestrial Coupling Parameter     !!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,FMT2) "    Sensible and Latent heat coupling parameters against soil moisture "
+         write(*,*)  tcp_shf, tcp_lhf
          write(*,*)
          write(*,*)
          write(*,*)

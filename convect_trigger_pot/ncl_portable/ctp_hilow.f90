@@ -40,17 +40,6 @@
 ! Modified by           -- A.B. Tawfik on June 2015
 !
 !---------------------------------------------------------------------------------
-module Conv_Trig_Pot_Mod
-
-     !
-     ! subroutine name 
-     !
-     public ctp_hi_low
-     private dew_point
-
-!---------------------------------------------------------------------------------
-contains
-!---------------------------------------------------------------------------------
 
 
 
@@ -64,8 +53,7 @@ contains
 !               in mass.
 !                  
 !---------------------------------------------------------------------------------
-  subroutine ctp_hi_low ( nlev_in, tlev_in, qlev_in, plev_in,  &
-                          t2m_in , q2m_in , psfc_in, CTP, HILOW , missing )
+  subroutine ctp_hi_low ( nlev_in, tlev_in, qlev_in, plev_in, t2m_in , q2m_in , psfc_in, CTP, HILOW , missing )
 
    implicit none
 !
@@ -343,7 +331,7 @@ contains
          tmid  =  ( (t_segment*log(p_segment)  +  tseg_old*log(p_old))  /  log(p_segment*p_old) )
          qmid  =  ( (q_segment*log(p_segment)  +  qseg_old*log(p_old))  /  log(p_segment*p_old) )
          dz    =  (p_old-p_segment) / (grav * pmid /(Rd*tmid*((1.+(qmid/ep)) / (1. + qmid))))
-
+        
          moist_lapse  =  (grav/cp) * ( (1. + (Lv    * qmid)/(   Rd*tmid   )) /   &
                                        (1. + (Lv**2 * qmid)/(cp*Rv*tmid**2)) )
  
@@ -430,8 +418,3 @@ contains
 
  end subroutine dew_point
 !---------------------------------------------------------------------------------
-
-
-
-
-end module Conv_Trig_Pot_Mod

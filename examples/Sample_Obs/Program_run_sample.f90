@@ -14,6 +14,7 @@ Program Coupling_metrics
        use HCF_vars_calc
        use Soil_Memory_Mod
        use Terrestrial_Coupling_Mod
+       use Conv_Trig_Pot_Mod
        implicit none
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
@@ -40,7 +41,8 @@ Program Coupling_metrics
    real(4), dimension(ntim)                  :: tbm    ,  bclh   , bclp ,  tdef,    &
                                                 hadv   ,  tranp  , tadv ,           &
                                                 shdef  ,  lhdef  , eadv
-   real(4), dimension(1,1)                   :: sh_ent, lh_ent, sh_sfc, lh_sfc, sh_tot,  lh_tot
+   real(4), dimension(ntim,1)                :: sh_ent, lh_ent, sh_sfc, lh_sfc, sh_tot,  lh_tot
+   real(4), dimension(ntim,1)                :: A_SH, A_LH
    real(4), dimension(ntim)                  :: ef, ne, heating, growth, dry, drh_dt
 
    real(4)                                   :: yr1, mn1, hr1
@@ -57,6 +59,13 @@ Program Coupling_metrics
    ! Format statements
    character(len=24), parameter :: FMT1 = "(4(F12.4,2x))"   
    character(len=24), parameter :: FMT2 = "(4(A,2x))"   
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+   ! Convective Triggering Potential declarations    ! 
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   integer, parameter                 ::  nlev_ctp  = 23
+   real(4), dimension(ntim)           ::  ctp, hilow
+   real(4), dimension(ntim,nlev_ctp)  ::  t_ctp, q_ctp, p_ctp
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    ! Surface and soil moisture routine declaractions ! 
@@ -83,7 +92,6 @@ Program Coupling_metrics
    real(4), dimension(ntim1,1)               ::  lhf_terra
    real(4), dimension(1)                     ::  tcp_shf, tcp_lhf
 
-
 !---------------------------------------------------------------------------------
 
          !********************************  
@@ -91,52 +99,55 @@ Program Coupling_metrics
          !***    Initialize inputs to missing values
          !***                               
          !********************************  
-         plev  =  missing
-         tlev  =  missing
-         qlev  =  missing
-         hlev  =  missing
-         t2m   =  missing
-         q2m   =  missing
-         h2m   =  missing
-         p2m   =  missing
+         plev           =  missing
+         tlev           =  missing
+         qlev           =  missing
+         hlev           =  missing
+         t2m            =  missing
+         q2m            =  missing
+         h2m            =  missing
+         p2m            =  missing
 
-         shf   =  missing
-         lhf   =  missing
-         pblh  =  missing
+         shf            =  missing
+         lhf            =  missing
+         pblh           =  missing
 
-         tbm   =  missing
-         tdef  =  missing
-         shdef =  missing
-         bclp  =  missing
-         bclh  =  missing
-         lhdef =  missing
-         eadv  =  missing
-         hadv  =  missing
-         tranp =  missing
-         tadv  =  missing
-         sh_ent  =  missing
-         lh_ent  =  missing
-         sh_sfc  =  missing
-         lh_sfc  =  missing
-         sh_tot  =  missing
-         lh_tot  =  missing
+         tbm            =  missing
+         tdef           =  missing
+         shdef          =  missing
+         bclp           =  missing
+         bclh           =  missing
+         lhdef          =  missing
+         eadv           =  missing
+         hadv           =  missing
+         tranp          =  missing
+         tadv           =  missing
+         sh_ent         =  missing
+         lh_ent         =  missing
+         sh_sfc         =  missing
+         lh_sfc         =  missing
+         sh_tot         =  missing
+         lh_tot         =  missing
 
-         ef      =  missing
-         ne      =  missing
-         heating =  missing
-         growth  =  missing
-         dry     =  missing
-         drh_dt  =  missing
+         ef             =  missing
+         ne             =  missing
+         heating        =  missing
+         growth         =  missing
+         dry            =  missing
+         drh_dt         =  missing
 
          soil_moisture  =  miss
          soil_memory    =  miss
+ 
+         ctp            =  missing
+         hilow          =  missing
 
 
-         !********************************  
+         !*****************************************  
          !***                               
-         !***    Read sample profile data
+         !***    Read sample profile data for HCF
          !***                               
-         !********************************  
+         !*****************************************
          unit_profile  =  10
          open( unit=unit_profile, file='Sample_profile.txt' )
          do zz=1,nlev
@@ -150,6 +161,7 @@ Program Coupling_metrics
 
          end do
          close(unit_profile)
+
 
 
          !********************************  
@@ -181,17 +193,28 @@ Program Coupling_metrics
 
 
 
-         !********************************  
+         !*****************************************************************************
          !***                               
          !***    Read sample flux and soil moisture for Terrestrail Coupling Parameter
          !***                               
-         !********************************  
+         !*****************************************************************************
          unit_terra  =  14
          open( unit=unit_terra, file='Sample_tcp.csv' )
          do tt=1,ntim1
             read(unit_terra,*) soilm_terra(tt,1), shf_terra(tt,1), lhf_terra(tt,1)
          end do
          close(unit_terra)
+
+
+         !*****************************************  
+         !***                               
+         !***    Map data for CTP-HiLow Calculation
+         !***                               
+         !*****************************************
+         p_ctp  =  plev
+         q_ctp  =  qlev
+         t_ctp  =  tlev
+
 
 
          !---------------------------------------------
@@ -205,9 +228,6 @@ Program Coupling_metrics
          call cpu_time(start)
          do tt = 1,ntim
 
-                    !---------------------------------------------
-                    !--- Call HCF variables calculate routines
-                    !---------------------------------------------
                     call hcfcalc( nlev       ,  missing                            ,    &
                                   tlev (tt,:),  plev (tt,:), qlev(tt,:),  hlev(tt,:),    &
                                   t2m  (tt,1),  p2m  (tt,1), q2m (tt,1),  h2m (tt,1),    &
@@ -216,7 +236,7 @@ Program Coupling_metrics
                                   shdef(tt)  ,  lhdef(tt)  , eadv(tt)                    )
 
 
-         end do  !*** end of time loop
+         end do
          call cpu_time(finish)
          print '("Heated Condensation Framework   =   ",f10.3," seconds.")',finish-start
 
@@ -228,11 +248,11 @@ Program Coupling_metrics
          !---
          !---------------------------------------------
          call cpu_time(start)
-         call mixing_diag_daily ( 1          , ntim       , 1          ,  8       ,          &  
-                                  t2m (:,1:1), p2m(:,1:1) , q2m(:,1:1) ,                     &
-                                  pblh(:,1:1), shf(:,1:1) , lhf(:,1:1) ,  8.*3600.,          &
-                                  sh_ent     , lh_ent     ,                                  &
-                                  sh_sfc     , lh_sfc     , sh_tot     ,  lh_tot,  missing )
+         call mixing_diag ( 1          , ntim       ,                                  &  
+                            t2m (:,1:1), p2m(:,1:1) , q2m(:,1:1) ,                     &
+                            pblh(:,1:1), shf(:,1:1) , lhf(:,1:1) ,  8.*3600.,          &
+                            sh_ent     , lh_ent     ,                                  &
+                            sh_sfc     , lh_sfc     , sh_tot     ,  lh_tot,  missing )
          call cpu_time(finish)
          print '("Mixing Diagrams   =   ",f10.3," seconds.")',finish-start
 
@@ -266,8 +286,6 @@ Program Coupling_metrics
 
 
 
-
-
          !---------------------------------------------
          !---
          !--- Terrestrial Coupling Section
@@ -283,6 +301,23 @@ Program Coupling_metrics
 
 
 
+         !---------------------------------------------
+         !---
+         !--- Convective Triggering Potenitl - LL humidity
+         !---
+         !---------------------------------------------
+         !**********************************    
+         !*** Loop over time
+         !**********************************    
+         call cpu_time(start)
+         do tt = 1,ntim
+
+                    call ctp_hi_low( nlev_ctp ,  t_ctp(tt,:),  q_ctp(tt,:), p_ctp(tt,:), &
+                                     t2m(tt,1),  q2m  (tt,1),  p2m  (tt,1), ctp  (tt)  , hilow(tt), missing )
+
+         end do
+         call cpu_time(finish)
+         print '("Convective Triggering Potential   =   ",f10.3," seconds.")',finish-start
 
 
 
@@ -317,10 +352,18 @@ Program Coupling_metrics
          write(*,*)  "  !!!!!!!!!!!      Mixing Diagrams Output      !!!!!!!!!!!!  "
          write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
          write(*,FMT2) " SH Entrainment",    " SH Surface", "   SH Total",    "Entrainment Ratio"
-         write(*,FMT1)  sh_ent, sh_sfc, sh_tot, sh_ent/sh_sfc
+         A_LH  =  missing
+         A_SH  =  missing
+         where( sh_ent.ne.missing .and. sh_sfc.ne.missing )   A_SH  =  sh_ent/sh_sfc
+         where( lh_ent.ne.missing .and. lh_sfc.ne.missing )   A_LH  =  lh_ent/lh_sfc
+         do tt=1,ntim-1
+            write(*,FMT1)  sh_ent(tt,1), sh_sfc(tt,1), sh_tot(tt,1), A_SH(tt,1)
+         end do
          write(*,*) 
          write(*,FMT2) " LH Entrainment",    " LH Surface", "   LH Total",    "Entrainment Ratio"
-         write(*,FMT1)  lh_ent, lh_sfc, lh_tot, lh_ent/lh_sfc
+         do tt=1,ntim-1
+             write(*,FMT1)  lh_ent(tt,1), lh_sfc(tt,1), lh_tot(tt,1), A_LH(tt,1)
+         end do
          write(*,*)
          write(*,*)
          write(*,*)
@@ -371,6 +414,15 @@ Program Coupling_metrics
          write(*,*)
          write(*,*)
          write(*,*)
+         write(*,*)
+         write(*,*)
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!    Convective Triggering Potential   !!!!!!!!!!!!  "
+         write(*,*)  "  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  "
+         write(*,FMT2) "       CTP",    "        Hi-Low"
+         do tt=1,ntim
+            write(*,FMT1)  ctp(tt), hilow(tt)
+         end do
          write(*,*)
          write(*,*)
          write(*,*)

@@ -157,10 +157,10 @@ subroutine mixing_diag_step ( dim2      , ntim                                  
       !-----------------------------------------------------------------------------------
       !-- Define the start and end times of the increment for sensible and latent heat
       !-----------------------------------------------------------------------------------
-      cp_theta_initial           =   cp_theta        !*** start of time increment
-      cp_theta_final(:ntim-1,:)  =   cp_theta(2:,:)  !*** end of time increment
-      Lv_qhum_initial            =   Lv_qhum         !*** start of time increment
-      Lv_qhum_final (:ntim-1,:)  =   Lv_qhum (2:,:)  !*** end of time increment
+      cp_theta_initial(2:,:)   =   cp_theta(:ntim-1,:) !*** start of time increment
+      cp_theta_final           =   cp_theta            !*** end of time increment
+      Lv_qhum_initial (2:,:)   =   Lv_qhum (:ntim-1,:) !*** start of time increment
+      Lv_qhum_final            =   Lv_qhum             !*** end of time increment
 
       where( Lv_qhum_initial.ne.missing .and. cp_deltaT.ne.missing .and. bowen_s.ne.missing )
              Lv_q_0  =  Lv_qhum_initial   +  (cp_deltaT/bowen_s)

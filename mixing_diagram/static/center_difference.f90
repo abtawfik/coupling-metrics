@@ -259,4 +259,249 @@ end subroutine mixing_diag_step
 
 
 
+
+
+
+!---------------------------------------------------------------------------------
+!
+! subroutines:  Performs a centered finite difference:
+!               dq/dr ==> partial(q)/partial(r) ==>
+!               dqdr(n) = (q(n+1)-q(n-1))/(r(n+1)-r(n-1))
+!
+!               This routine is based off of the NCL routine center_finite_diff
+!               written by Dennis Shea and is slightly modified by A. Tawfik.
+!
+!---------------------------------------------------------------------------------
+  subroutine center_diff ( q, r, npts, miss, icycle, iend, dqdr )
+
+
+
+   implicit none
+
+!
+! Input/Output Variables
+!
+   integer, intent(in)  ::  npts        !*** number of points
+   integer, intent(in)  ::  icycle      !*** 1=if r is cyclical otherwise 0=
+   integer, intent(in)  ::  iend        !*** 1=approximate end points using 1-sided differencing
+                                        !    0=set the end points to missing
+   real(4), intent(in)  ::  q(npts)     !*** input vector [variable to be differenced]
+   real(4), intent(in)  ::  r(npts)     !*** input vector [spatial or temporal coordinates]    
+   real(4), intent(in)  ::  miss        !*** missing value [same for q and r]
+   real(4), intent(out) ::  dqdr(npts)  !*** center differenced output
+
+!
+! Local variables
+!
+   real(4)              ::  qq(0:npts+1), rr(0:npts+1)  ! working arrays
+   integer              ::  n, nstrt, nlast
+!----------------------------------------------------------------------------------
+
+
+      !--------------------------------------------------
+      !----  Check that there enough data points
+      !--------------------------------------------------
+      if (npts.le.2) then
+          write(*,*)  "Not enough data points...need more than 2 -- npts = ",npts
+          return
+      end if
+
+      !--------------------------------------------------
+      !----  Check for conflicting options
+      !--------------------------------------------------
+      if (icycle.eq.1 .and. iend.ne.0) then
+          return
+      end if
+
+      !--------------------------------------------------
+      !----  Initialize working and output arrays
+      !--------------------------------------------------
+      dqdr  =  miss
+      qq    =  q
+      rr    =  r
+
+      !--------------------------------------------------
+      !----  add points to the ends if its cyclical
+      !--------------------------------------------------
+      nstrt = 2
+      nlast = npts-1
+      if (icycle.eq.1) then
+          nstrt = 1
+          nlast = npts
+          qq(0) = qq(npts)
+          rr(0) = rr(1) - (rr(2)-rr(1))
+          qq(npts+1) = qq(1)
+          rr(npts+1) = rr(npts) + (rr(npts)-rr(npts-1))
+      end if
+
+
+      !--------------------------------------------------
+      !----  Perform the center differencing
+      !--------------------------------------------------
+      do n=nstrt,nlast
+         if (qq(n-1).ne.miss .and. qq(n+1).ne.miss) then
+             dqdr(n) = (qq(n+1)-qq(n-1))/(rr(n+1)-rr(n-1))
+         end if
+      end do
+
+
+      !--------------------------------------------------
+      !----  if not cyclic
+      !----  how to treat end-points
+      !--------------------------------------------------
+      if (icycle.ne.1 .and. iend.eq.1) then
+          if (qq(1).ne.miss .and. qq(2).ne.miss) then
+              dqdr(1)    = (qq(2)-qq(1))/(rr(2)-rr(1))
+          end if
+          if (qq(npts).ne.miss .and. qq(npts-1).ne.miss) then
+              dqdr(npts) = (qq(npts)-qq(npts-1))/(rr(npts)-rr(npts-1))
+          end if
+      end if
+
+      return
+  end subroutine center_diff
+
+
+
+
+
+
+
+
+
+
+
+
+!---------------------------------------------------------------------------------
+!
+! subroutines:  Performs a centered finite difference:
+!               dq/dr ==> partial(q)/partial(r) ==>
+!               dqdr(n) = (q(n+1)-q(n-1))/(r(n+1)-r(n-1))
+!
+!               This routine is based off of the NCL routine center_finite_diff
+!               written by Dennis Shea and is slightly modified by A. Tawfik.
+!
+!---------------------------------------------------------------------------------
+  subroutine center_diff_f90 ( q, r, npts, miss, icycle, iend, dqdr )
+
+
+
+   implicit none
+
+!
+! Input/Output Variables
+!
+   integer, intent(in)  ::  npts        !*** number of points
+   integer, intent(in)  ::  icycle      !*** 1=if r is cyclical otherwise 0=
+   integer, intent(in)  ::  iend        !*** 1=approximate end points using 1-sided differencing
+                                        !    0=set the end points to missing
+   real(4), intent(in)  ::  q(npts)     !*** input vector [variable to be differenced]
+   real(4), intent(in)  ::  r(npts)     !*** input vector [spatial or temporal coordinates]    
+   real(4), intent(in)  ::  miss        !*** missing value [same for q and r]
+   real(4), intent(out) ::  dqdr(npts)  !*** center differenced output
+
+!
+! Local variables
+!
+   real(4)              ::  qq(0:npts+1)
+   real(4)              ::  rr(0:npts+1)         
+   real(4)              ::  q_before(0:npts+1)
+   real(4)              ::  r_before(0:npts+1)   
+   real(4)              ::  q_after (0:npts+1)
+   real(4)              ::  r_after (0:npts+1)   
+   integer              ::  n, nstrt, nlast
+!----------------------------------------------------------------------------------
+
+
+      !--------------------------------------------------
+      !----  Check that there enough data points
+      !--------------------------------------------------
+      if (npts.le.2) then
+          write(*,*)  "Not enough data points...need more than 2 -- npts = ",npts
+          return
+      end if
+
+      !--------------------------------------------------
+      !----  Check for conflicting options
+      !--------------------------------------------------
+      if (icycle.eq.1 .and. iend.ne.0) then
+          return
+      end if
+
+      !--------------------------------------------------
+      !----  Initialize working and output arrays
+      !--------------------------------------------------
+      dqdr      =  miss
+      qq        =  q
+      rr        =  r
+      q_before  =  miss
+      q_after   =  miss
+      r_before  =  miss
+      r_after   =  miss
+  
+
+      !--------------------------------------------------
+      !----  add points to the ends if its cyclical
+      !--------------------------------------------------
+      nstrt = 2
+      nlast = npts-1
+      if (icycle.eq.1) then
+          nstrt = 1
+          nlast = npts
+          qq(0) = qq(npts)
+          rr(0) = rr(1) - (rr(2)-rr(1))
+          qq(npts+1) = qq(1)
+          rr(npts+1) = rr(npts) + (rr(npts)-rr(npts-1))
+      end if
+
+
+      !--------------------------------------------------
+      !----  Shift arrays before and after for the center
+      !----  differencing calculation
+      !--------------------------------------------------
+      q_before  =  miss
+      q_after   =  miss
+      r_before  =  miss
+      r_after   =  miss
+  
+           
+ 
+
+      !--------------------------------------------------
+      !----  Perform the center differencing
+      !--------------------------------------------------
+      do n=nstrt,nlast
+         if (qq(n-1).ne.miss .and. qq(n+1).ne.miss) then
+             dqdr(n) = (qq(n+1)-qq(n-1))/(rr(n+1)-rr(n-1))
+         end if
+      end do
+
+
+      !--------------------------------------------------
+      !----  if not cyclic
+      !----  how to treat end-points
+      !--------------------------------------------------
+      if (icycle.ne.1 .and. iend.eq.1) then
+          if (qq(1).ne.miss .and. qq(2).ne.miss) then
+              dqdr(1)    = (qq(2)-qq(1))/(rr(2)-rr(1))
+          end if
+          if (qq(npts).ne.miss .and. qq(npts-1).ne.miss) then
+              dqdr(npts) = (qq(npts)-qq(npts-1))/(rr(npts)-rr(npts-1))
+          end if
+      end if
+
+      return
+  end subroutine center_diff_f90
+
+
+
+
+
+
+
+
+
+
+
+
 end module Mixing_Diag_Mod

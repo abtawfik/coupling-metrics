@@ -13,9 +13,43 @@
 ! locally triggered convection versus transient events using a single profile, where 
 ! locally triggered == where TDEF=0 and otherwise observed cloud cover is non-local
 !
-! Reference: Tawfik and Dirmeyer 2014 GRL: A processed based framework for 
+! Variables returned can be categorized into two groups:
+! 1) THRESHOLD VARIABLES -- The first set of variales are those associated with 
+!                           triggering convection and refer to TBM, BCLH, BCLP, and TDEF.
+! 2) EVALUATION VARIABLE -- These variables return detailed information about the 
+!                           current convective regime.  Namely, the amount of sensible
+!                           and latent heat necessary for initiation (SHDEF_M and LHDEF_M),
+!                           the most energy efficient pathway among the two (EADV_M), and
+!                           the height, pressure, and potential temperature at which the
+!                           transition from one energy advantange to another occurs
+!                           (TRAN_H, TRAN_P, TRAN_T). These energy transition variables
+!                           may not be always present because some vertical profiles
+!                           may lie entirely within one regime. These variables will be
+!                           returned as missing if TDEF=0 because there is no longer a
+!                           physical meaning behind "energy advantage" and "transition".
+!
+! Note: Programatically evaluation variables are not required so the user can decided whether
+!       they wish to include their calculation.  This is because Evaluation variables add
+!       a noticable (but not excessive amount computation time.  Also, calculation of 
+!       Evaluation variables is all or nothing, meaning you have to include all in the subroutine
+!       call.  If you only include one Evaluation when calling the subroutine then the output will 
+!       be returned as missing.
+!
+!
+! Reference: --Methods--
+!            Tawfik and Dirmeyer 2014 GRL: A processed based framework for 
 !            quantifying the atmospheric background state of surface triggered
 !            convection
+!
+!            Tawfik, A., P.A. Dirmeyer, J.A. Santanello Jr. (2015), The Heated
+!            Condensation Framework. Part I: Description and Southern Great Plains 
+!            Case Study, Journal of Hydromet. doi:10.1175/JHM-D-14-0117.1
+!  
+!            --Climatological Evaluation--
+!            Tawfik, A., P.A. Dirmeyer, J.A. Santanello Jr. (2015), The Heated 
+!            Condensation Framework. Part II:  Climatological behavior of convective
+!            initiation and land-atmosphere coupling over the Continental United States,
+!            Journal of Hydromet. doi:10.1175/JHM-D-14-0118.1
 !
 ! Author and Revision History: 
 ! A.B. Tawfik on Aug 2014
@@ -26,7 +60,7 @@ module HCF_vars_calc
      !
      ! subroutines names (base name) 
      !
-     public hcfcalc          ! calculates the basic HCF variables (thresholds variables)
+     public hcfcalc          ! calculates the full suite of HCF variables
 
 !---------------------------------------------------------------------------------
 contains
@@ -63,12 +97,12 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
    real(4), intent(out  )                       ::  BCLH        ! *** height above ground of convective threshold [m]
    real(4), intent(out  )                       ::  BCLP        ! *** pressure of convective threshold level [Pa]
    real(4), intent(out  )                       ::  TDEF        ! *** potential temperature deficit need to initiate [K]
-   real(4), intent(out  )                       ::  TRAN_H      ! *** energy transition height   [m]
-   real(4), intent(out  )                       ::  TRAN_P      ! *** energy transition pressure [Pa]
-   real(4), intent(out  )                       ::  TRAN_T      ! *** energy transition temperature  [K]
-   real(4), intent(out  )                       ::  SHDEF_M     ! *** sensible heat deficit of mixed layer [J/m2]
-   real(4), intent(out  )                       ::  LHDEF_M     ! *** latent heat deficit of mixed layer [J/m2]
-   real(4), intent(out  )                       ::  EADV_M      ! *** energy advantage of mixed layer [-]
+   real(4), intent(out  ), optional             ::  TRAN_H      ! *** energy transition height   [m]
+   real(4), intent(out  ), optional             ::  TRAN_P      ! *** energy transition pressure [Pa]
+   real(4), intent(out  ), optional             ::  TRAN_T      ! *** energy transition temperature  [K]
+   real(4), intent(out  ), optional             ::  SHDEF_M     ! *** sensible heat deficit of mixed layer [J/m2]
+   real(4), intent(out  ), optional             ::  LHDEF_M     ! *** latent heat deficit of mixed layer [J/m2]
+   real(4), intent(out  ), optional             ::  EADV_M      ! *** energy advantage of mixed layer [-]
 !
 ! Local variables
 !
@@ -115,12 +149,12 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
       BCLH     =   missing 
       BCLP     =   missing
       TDEF     =   missing
-      TRAN_H   =   missing
-      TRAN_P   =   missing
-      TRAN_T   =   missing
-      SHDEF_M  =   missing
-      LHDEF_M  =   missing
-      EADV_M   =   missing
+      if( present(TRAN_H ) )   TRAN_H   =   missing
+      if( present(TRAN_P ) )   TRAN_P   =   missing
+      if( present(TRAN_T ) )   TRAN_T   =   missing
+      if( present(SHDEF_M) )   SHDEF_M  =   missing
+      if( present(LHDEF_M) )   LHDEF_M  =   missing
+      if( present(EADV_M ) )   EADV_M   =   missing
 
 
       !-----------------------------------------------------------------------------
@@ -440,6 +474,40 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
       !    then transition levels are set to missing values.
       !
       !--------------------------------------------------------------------------------
+      
+      !---------------------------------------------------
+      !--------
+      !--------  If any extended HCF variables are no passed
+      !--------  to the subroutine thent do not perform any
+      !--------  calculation and those that ARE provided
+      !--------  set to zero.
+      !--------  *** NOTE:  ALL EXTENDED HCF VARIABLES
+      !--------             MUST BE PROVIDED FOR any of
+      !--------             TO BE CALCULATED
+      !--------  Extended HCF Variables are all those the
+      !--------  Optional tag during variable declaration
+      !--------
+      !---------------------------------------------------
+      if( .not.present(TRAN_H ) .or.  & 
+          .not.present(TRAN_P ) .or.  & 
+          .not.present(TRAN_T ) .or.  & 
+          .not.present(SHDEF_M) .or.  & 
+          .not.present(LHDEF_M) .or.  & 
+          .not.present(EADV_M )       ) then
+
+          if( present(TRAN_H ) )   TRAN_H   =   missing
+          if( present(TRAN_P ) )   TRAN_P   =   missing
+          if( present(TRAN_T ) )   TRAN_T   =   missing
+          if( present(SHDEF_M) )   SHDEF_M  =   missing
+          if( present(LHDEF_M) )   LHDEF_M  =   missing
+          if( present(EADV_M ) )   EADV_M   =   missing
+          return
+
+      end if  
+
+
+
+
       !---------------------------------------------------
       !--------
       !--------  No energy deficits because

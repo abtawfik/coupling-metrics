@@ -1,23 +1,27 @@
 C NCLFORTSTART
-       subroutine mixing_diag_step ( dim2   , ntim   ,  
-    &                                t2m    , psfc   , q2m    ,  
-    &                                pbl_h  , shf    , lhf    , dt     ,  
-    &                                shf_ent, lhf_ent, shf_sfc, lhf_sfc, 
-    &                                shf_tot, lhf_tot, missing         )
+       subroutine mixing_diag ( dim2   , ntim   , steps_per_day   ,
+     &                          t2m    , psfc   , q2m    ,  
+     &                          pbl_h  , shf    , lhf    , dt     ,  
+     &                          shf_ent, lhf_ent, shf_sfc, lhf_sfc, 
+     &                          shf_tot, lhf_tot, evapf  , 
+     &                          lcl_deficit     , missing         )
        integer  dim2           
        integer  ntim           
+       integer  steps_per_day
        real     dt             
        real     missing        
-       real     t2m    (ntim,dim2)        
-       real     q2m    (ntim,dim2)        
-       real     psfc   (ntim,dim2)        
-       real     pbl_h  (ntim,dim2)        
-       real     shf    (ntim,dim2)        
-       real     lhf    (ntim,dim2)        
-       real     shf_ent(ntim,dim2)        
-       real     lhf_ent(ntim,dim2)        
-       real     shf_sfc(ntim,dim2)        
-       real     lhf_sfc(ntim,dim2)        
-       real     shf_tot(ntim,dim2)        
-       real     lhf_tot(ntim,dim2)        
+       real     t2m        (ntim,dim2)        
+       real     q2m        (ntim,dim2)        
+       real     psfc       (ntim,dim2)        
+       real     pbl_h      (ntim,dim2)        
+       real     shf        (ntim,dim2)        
+       real     lhf        (ntim,dim2)        
+       real     shf_ent    (ntim,dim2)        
+       real     lhf_ent    (ntim,dim2)        
+       real     shf_sfc    (ntim,dim2)        
+       real     lhf_sfc    (ntim,dim2)        
+       real     shf_tot    (ntim,dim2)        
+       real     lhf_tot    (ntim,dim2)        
+       real     evapf      (ntim/steps_per_day,dim2)
+       real     lcl_deficit(ntim,dim2)
 C NCLEND

@@ -48,15 +48,17 @@ contains
 !               This depends on the "average_daily" control switch below.  By default 
 !               "average_daily = .true."  which calcualte average flux quantities for each day
 !---------------------------------------------------------------------------------
-  subroutine mixing_diag ( dim2      , ntim                                                  ,  &
-                           t2m       , psfc    , q2m    ,  pbl_h  , shf    , lhf    , dt     ,  &
-                           shf_ent   , lhf_ent , shf_sfc,  lhf_sfc, shf_tot, lhf_tot, missing   )
+  subroutine mixing_diag ( dim2       , ntim    , steps_per_day                               ,  &
+                           t2m        , psfc    , q2m    ,  pbl_h  , shf    , lhf    , dt     ,  &
+                           shf_ent    , lhf_ent , shf_sfc,  lhf_sfc, shf_tot, lhf_tot, evapf  ,  &
+                           lcl_deficit, missing   )
    implicit none
 !
 ! Input/Output Variables
 !
    integer, intent(in   )                         ::  dim2           ! *** missing value - useful for obs
    integer, intent(in   )                         ::  ntim           ! *** total number of time slices
+   integer, intent(in   )                         ::  steps_per_day  ! *** number of time steps per day
    real(4), intent(in   )                         ::  dt             ! *** time increment of the hours dimension [seconds]
  
    real(4), intent(in   )                         ::  missing        ! *** missing value - useful for obs
@@ -69,12 +71,15 @@ contains
    real(4), intent(out  ), dimension(ntim,dim2)   ::  lhf_sfc        ! *** surface flux of latent heat [W/m2]
    real(4), intent(out  ), dimension(ntim,dim2)   ::  shf_tot        ! *** Total flux of sensible heat [W/m2]
    real(4), intent(out  ), dimension(ntim,dim2)   ::  lhf_tot        ! *** Total flux of latent heat [W/m2]
+   real(4), intent(out  ), dimension(ntim/steps_per_day,dim2), optional ::  evapf        ! *** daily evaporative fraction [unitless]
+   real(4), intent(out  ), dimension(ntim,dim2)              , optional ::  lcl_deficit  ! *** lifted condensation level deficit (lcl - pbl) [m]
 !
 ! Local variables
 !
-   real(4), parameter   ::  p_ref=1e5 , Lv=2.5e6, cp=1005.7, R_cp=287.04/1005.7
-   real(4), parameter   ::  grav = 9.81, Rd=287.04, ep = 0.622
+   real(4), parameter   ::  p_ref=1e5 , Lv=2.5e6, cp=1005.7
+   real(4), parameter   ::  grav = 9.81, Rd=287.04, ep = 0.622, R_cp=Rd/cp
  
+   integer                           ::  nday
    real(4), dimension(ntim,dim2)     ::  rho                  
    real(4), dimension(ntim,dim2)     ::  bowen_s             
    real(4), dimension(ntim,dim2)     ::  cp_theta_final      
@@ -94,6 +99,17 @@ contains
    real(4), dimension(ntim,dim2)     ::  lhfs0      
    real(4), dimension(ntim,dim2)     ::  shfs0     
 
+   real(4), dimension(ntim,dim2)     ::  theta
+   real(4), dimension(ntim,dim2)     ::  tsat
+   real(4), dimension(ntim,dim2)     ::  plcl
+   real(4), dimension(ntim,dim2)     ::  hlcl
+   real(4), dimension(ntim,dim2)     ::  tvirt
+
+   real(4), dimension(ntim/steps_per_day              ,dim2)  ::  shf_sum     
+   real(4), dimension(ntim/steps_per_day              ,dim2)  ::  lhf_sum     
+   real(4), dimension(ntim/steps_per_day,steps_per_day,dim2)  ::  shf_day     
+   real(4), dimension(ntim/steps_per_day,steps_per_day,dim2)  ::  lhf_day     
+
 !-----------------------------------------------------------------------------
 
 
@@ -109,10 +125,13 @@ contains
       lhf_sfc    =  missing
       shf_tot    =  missing
       lhf_tot    =  missing
+      if( present(evapf      ) ) evapf        =  missing
+      if( present(lcl_deficit) ) lcl_deficit  =  missing
     
       !--------------------------------
       !-- initialize working arrays
       !--------------------------------
+      nday       =  ntim/steps_per_day
       bowen_s    =  missing
       rho        =  missing
       Lv_qhum    =  missing
@@ -196,64 +215,125 @@ contains
       !******
       !*********************************************************************************
 
-          !--------------------------------------------------
-          ! Calculate Heat budget in Wm-2
-          !--------------------------------------------------
-          where( cp_theta_final.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. cp_T_0.ne.missing ) 
-             shf0    =  (((cp * ((cp_theta_final/cp)  -  &
-                          (cp_theta_initial/cp)))) * (rho * pbl_h))/(dt)
-             shfi0   =  (((cp * ((cp_theta_final/cp)  -  &
-                          (cp_T_0          /cp)))) * (rho * pbl_h))/(dt)
+      !--------------------------------------------------
+      ! Calculate Heat budget in Wm-2
+      !--------------------------------------------------
+      where( cp_theta_final.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. cp_T_0.ne.missing ) 
+         shf0    =  (((cp * ((cp_theta_final/cp)  -  &
+                      (cp_theta_initial/cp)))) * (rho * pbl_h))/(dt)
+         shfi0   =  (((cp * ((cp_theta_final/cp)  -  &
+                      (cp_T_0          /cp)))) * (rho * pbl_h))/(dt)
+      endwhere
+
+      !--------------------------------------------------
+      !****  Total sensible heat Wm-2
+      !--------------------------------------------------
+      shf_tot  =  shf0
+
+      !--------------------------------------------------
+      !****  Entrainment sensible heat Wm-2
+      !--------------------------------------------------
+      shf_ent  =  shfi0
+
+      !--------------------------------------------------
+      !****  Surface sensible heat Wm-2
+      !--------------------------------------------------
+      where( cp_theta_initial.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. cp_T_0.ne.missing ) 
+         shfs0    =  (((cp * ((cp_T_0        /cp)  -  &
+                       (cp_theta_initial/cp)))) * (rho * pbl_h))/(dt)
+      endwhere
+      shf_sfc  =  shfs0
+
+
+      !--------------------------------------------------
+      !Calculate Moisture Budget in Wm-2
+      !--------------------------------------------------
+      where( Lv_qhum_final.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. Lv_q_0.ne.missing ) 
+         lhf0    =  (((Lv * ((Lv_qhum_final/Lv)  -  &
+                      (Lv_qhum_initial/Lv)))) * (rho * pbl_h))/(dt)
+         lhfi0   =  (((Lv * ((Lv_qhum_final/Lv)  -  &
+                      (Lv_q_0         /Lv)))) * (rho * pbl_h))/(dt)
+      endwhere
+
+      !--------------------------------------------------
+      !****  Total latent heat Wm-2
+      !--------------------------------------------------
+      lhf_tot  =  lhf0
+
+      !--------------------------------------------------
+      !****  Entrainment latent heat Wm-2
+      !--------------------------------------------------
+      lhf_ent  =  lhfi0
+
+      !--------------------------------------------------
+      !****  Surface latent heat Wm-2
+      !--------------------------------------------------
+      where( Lv_qhum_initial.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. Lv_q_0.ne.missing ) 
+         lhfs0   =  (((Lv * ((Lv_q_0        /Lv)  -  &
+                      (Lv_qhum_initial/Lv)))) * (rho * pbl_h))/(dt)
+      endwhere
+      lhf_sfc  =  lhfs0 
+
+
+
+
+      !-----------------------------------------------------------------------------------
+      !-- Calculate daily surface evaporative fraction (unitless)
+      !-- Evap Fraction is calculated by summing the LH and SH fluxes throughout the 
+      !-- day and then calculate a divide the cumulative LH daily flux by the sum of
+      !-- sensible and latent heat flux sums
+      !-----------------------------------------------------------------------------------
+      if( present(evapf) ) then
+         
+          shf_day  =  missing
+          lhf_day  =  missing
+          shf_sum  =  missing
+          lhf_sum  =  missing
+
+          shf_day  =  reshape( shf, (/nday,steps_per_day,dim2/) )  
+          lhf_day  =  reshape( lhf, (/nday,steps_per_day,dim2/) )  
+          shf_sum  =  sum(shf_day, DIM = 2, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
+          lhf_sum  =  sum(lhf_day, DIM = 2, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
+          where( lhf_sum+shf_sum.ne.0  .and.  shf_sum.ne.missing   .and.  lhf_sum.ne.missing  ) 
+             evapf  =  lhf_sum/(shf_sum+lhf_sum)
           endwhere
+      end if
 
-          !--------------------------------------------------
-          !****  Total sensible heat Wm-2
-          !--------------------------------------------------
-          shf_tot  =  shf0
 
-          !--------------------------------------------------
-          !****  Entrainment sensible heat Wm-2
-          !--------------------------------------------------
-          shf_ent  =  shfi0
 
-          !--------------------------------------------------
-          !****  Surface sensible heat Wm-2
-          !--------------------------------------------------
-          where( cp_theta_initial.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. cp_T_0.ne.missing ) 
-             shfs0    =  (((cp * ((cp_T_0        /cp)  -  &
-                           (cp_theta_initial/cp)))) * (rho * pbl_h))/(dt)
+      !-----------------------------------------------------------------------------------
+      !-- Calculate LCL Deficit (meters)
+      !-- The LCL deficit is defined as the difference between the lifted condensation level
+      !-- and the boundary layer height.  When the LCL deficit in negative then a necessary but
+      !-- criterion for convective initiation is met.  
+      !-- LCL is calculated using the Bolton 1980 empirical relationships
+      !--        David Bolton, 1980: The Computation of Equivalent Potential Temperature. 
+      !--        Mon. Wea. Rev., 108, 1046–1053.
+      !-- To convert from pressure of LCL to height use the hypsometric equation
+      !-- Note one assumption made here that is consistent with the mixing diagram assumption
+      !-- is that 2m temperature (t2m) is representative of the mean boundary layer temperature
+      !-----------------------------------------------------------------------------------
+      if( present(lcl_deficit) ) then
+
+          theta  =  missing
+          tsat   =  missing
+          plcl   =  missing
+          hlcl   =  missing
+          tvirt  =  missing
+
+          where( t2m  .ne.missing .and. psfc.ne.missing )   theta   =   t2m  * (1e5/psfc)**R_cp
+          where( theta.ne.missing .and. q2m .ne.missing )   
+               tsat    =   55. + (2840./ (3.5*log(theta) - log(1e6*q2m/(622.+(1e3*q2m))) - 4.805))
           endwhere
-          shf_sfc  =  shfs0
-
-
-          !--------------------------------------------------
-          !Calculate Moisture Budget in Wm-2
-          !--------------------------------------------------
-          where( Lv_qhum_final.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. Lv_q_0.ne.missing ) 
-             lhf0    =  (((Lv * ((Lv_qhum_final/Lv)  -  &
-                          (Lv_qhum_initial/Lv)))) * (rho * pbl_h))/(dt)
-             lhfi0   =  (((Lv * ((Lv_qhum_final/Lv)  -  &
-                          (Lv_q_0         /Lv)))) * (rho * pbl_h))/(dt)
+          where( theta.ne.missing .and. tsat.ne.missing )   plcl    =   1e3 * (tsat/theta) ** 3.4965
+          where( t2m  .ne.missing .and. q2m .ne.missing )   tvirt   =   t2m  * (1. + (0.61*q2m))
+          where( tvirt.ne.missing .and. plcl.ne.missing .and. psfc.ne.missing ) 
+               hlcl  =  (Rd*tvirt) / (grav) * log((psfc/1e2)/plcl)
           endwhere
+          where( hlcl.ne.missing .and. pbl_h.ne.missing )   lcl_deficit  =  hlcl - pbl_h
 
-          !--------------------------------------------------
-          !****  Total latent heat Wm-2
-          !--------------------------------------------------
-          lhf_tot  =  lhf0
+      end if
 
-          !--------------------------------------------------
-          !****  Entrainment latent heat Wm-2
-          !--------------------------------------------------
-          lhf_ent  =  lhfi0
-
-          !--------------------------------------------------
-          !****  Surface latent heat Wm-2
-          !--------------------------------------------------
-          where( Lv_qhum_initial.ne.missing .and. rho.ne.missing .and. pbl_h.ne.missing .and. Lv_q_0.ne.missing ) 
-             lhfs0   =  (((Lv * ((Lv_q_0        /Lv)  -  &
-                          (Lv_qhum_initial/Lv)))) * (rho * pbl_h))/(dt)
-          endwhere
-          lhf_sfc  =  lhfs0 
 
 
       return

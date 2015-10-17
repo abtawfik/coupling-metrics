@@ -290,10 +290,10 @@ contains
           shf_sum  =  missing
           lhf_sum  =  missing
 
-          shf_day  =  reshape( shf, (/nday,steps_per_day,dim2/) )  
-          lhf_day  =  reshape( lhf, (/nday,steps_per_day,dim2/) )  
-          shf_sum  =  sum(shf_day, DIM = 2, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
-          lhf_sum  =  sum(lhf_day, DIM = 2, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
+          shf_day  =  reshape( shf, (/steps_per_day,nday,dim2/) )  
+          lhf_day  =  reshape( lhf, (/steps_per_day,nday,dim2/) )  
+          shf_sum  =  sum(shf_day, DIM = 1, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
+          lhf_sum  =  sum(lhf_day, DIM = 1, MASK = shf_day.ne.missing .and. lhf_day.ne.missing )
           where( lhf_sum+shf_sum.ne.0  .and.  shf_sum.ne.missing   .and.  lhf_sum.ne.missing  ) 
              evapf  =  lhf_sum/(shf_sum+lhf_sum)
           endwhere

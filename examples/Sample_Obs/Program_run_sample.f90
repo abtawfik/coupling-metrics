@@ -23,6 +23,7 @@ Program Coupling_metrics
    ! dimension sizes
    integer, parameter                        ::  nlev  =  23
    integer, parameter                        ::  ntim  =  8
+   integer, parameter                        ::  nday  =  1
 
    ! Loop indices
    integer                                   ::  tt, zz
@@ -42,6 +43,9 @@ Program Coupling_metrics
                                                 hadv   ,  tranp  , tadv ,           &
                                                 shdef  ,  lhdef  , eadv
    real(4), dimension(ntim,1)                :: sh_ent, lh_ent, sh_sfc, lh_sfc, sh_tot,  lh_tot
+   real(4), dimension(ntim,1)                :: lcl_deficit
+   real(4), dimension(nday,1)                :: evapf
+
    real(4), dimension(ntim,1)                :: A_SH, A_LH
    real(4), dimension(ntim)                  :: ef, ne, heating, growth, dry, drh_dt
 
@@ -57,7 +61,7 @@ Program Coupling_metrics
    real(4), parameter                        ::  missing = -9999.
 
    ! Format statements
-   character(len=24), parameter :: FMT1 = "(4(F12.4,2x))"   
+   character(len=24), parameter :: FMT1 = "(6(F12.4,2x))"   
    character(len=24), parameter :: FMT2 = "(4(A,2x))"   
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
@@ -128,6 +132,8 @@ Program Coupling_metrics
          lh_sfc         =  missing
          sh_tot         =  missing
          lh_tot         =  missing
+         lcl_deficit    =  missing
+         evapf          =  missing
 
          ef             =  missing
          ne             =  missing
@@ -248,11 +254,12 @@ Program Coupling_metrics
          !---
          !---------------------------------------------
          call cpu_time(start)
-         call mixing_diag ( 1          , ntim       ,                                  &  
-                            t2m (:,1:1), p2m(:,1:1) , q2m(:,1:1) ,                     &
-                            pblh(:,1:1), shf(:,1:1) , lhf(:,1:1) ,  8.*3600.,          &
-                            sh_ent     , lh_ent     ,                                  &
-                            sh_sfc     , lh_sfc     , sh_tot     ,  lh_tot,  missing )
+         call mixing_diag ( 1          , ntim       , ntim       ,                          &  
+                            t2m (:,1:1), p2m(:,1:1) , q2m(:,1:1) ,                          &
+                            pblh(:,1:1), shf(:,1:1) , lhf(:,1:1) ,  8.*3600.,               &
+                            sh_ent     , lh_ent     ,                                       &
+                            sh_sfc     , lh_sfc     , sh_tot     ,  lh_tot, evapf(1:1,1:1), &
+                            lcl_deficit(:,1:1),  missing )
          call cpu_time(finish)
          print '("Mixing Diagrams   =   ",f10.3," seconds.")',finish-start
 
@@ -357,7 +364,7 @@ Program Coupling_metrics
          where( sh_ent.ne.missing .and. sh_sfc.ne.missing )   A_SH  =  sh_ent/sh_sfc
          where( lh_ent.ne.missing .and. lh_sfc.ne.missing )   A_LH  =  lh_ent/lh_sfc
          do tt=1,ntim-1
-            write(*,FMT1)  sh_ent(tt,1), sh_sfc(tt,1), sh_tot(tt,1), A_SH(tt,1)
+            write(*,FMT1)  sh_ent(tt,1), sh_sfc(tt,1), sh_tot(tt,1), A_SH(tt,1), lcl_deficit(tt,1), evapf
          end do
          write(*,*) 
          write(*,FMT2) " LH Entrainment",    " LH Surface", "   LH Total",    "Entrainment Ratio"

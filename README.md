@@ -17,7 +17,7 @@ This will create a file called ctp_hilow.so.  This shared object file can then b
 
 > CTPHiLow::ctp_hi_low( nlev, t, q, p, t2m , q2m , psfc, CTP, HILOW , missing )
 
-Note that you have to instantiate the output variables before you can call the routine in NCL.  A similar process can be performed in python where you create a shared object using the <b>f2py<b> command using files from the */ncl_portable/ directory.
+Note that you have to instantiate the output variables before you can call the routine in NCL.  A similar process can be performed in python where you create a shared object using the <b>f2py</b> command using files from the */ncl_portable/ directory.
 
 
 Below is a brief description of each metric:

@@ -47,6 +47,7 @@ module Conv_Trig_Pot_Mod
      !
      public ctp_hi_low
      private dew_point
+     private saturation_specific_humidity
 
 !---------------------------------------------------------------------------------
 contains
@@ -122,6 +123,7 @@ contains
    real(4)                        ::  moist_lapse, dz
    real(4)                        ::  pmid, tmid, qmid
    real(4)                        ::  qseg_old
+   real(4)                        ::  qsat
 !-----------------------------------------------------------------------------
 
 
@@ -157,9 +159,9 @@ contains
       !-- indices below and above 
       !-- desired pressure level
       !--------------------------------
-      do nn=1,nlev
+      level_index: do nn=1,nlev
          ilev(nn)  =  real(nn)
-      end do
+      end do level_index
 
       !-----------------------------------------------------------------------------------
       !-- Make sure there are no missing critical inputs  --> if so return CTP HILOW missing
@@ -311,7 +313,7 @@ contains
       tpar_old     =  temp100
       qseg_old     =  qhum100
       CTP          =  0.
-      do nn=1,nsegments
+      ctp_depth: do nn=1,nsegments
 
          !----------------------------------------------------
          !-- Pressure increment inbetween defined levels (Pa)
@@ -343,10 +345,12 @@ contains
          tmid  =  ( (t_segment*log(p_segment)  +  tseg_old*log(p_old))  /  log(p_segment*p_old) )
          qmid  =  ( (q_segment*log(p_segment)  +  qseg_old*log(p_old))  /  log(p_segment*p_old) )
          dz    =  (p_old-p_segment) / (grav * pmid /(Rd*tmid*((1.+(qmid/ep)) / (1. + qmid))))
-
-         moist_lapse  =  (grav/cp) * ( (1. + (Lv    * qmid)/(   Rd*tmid   )) /   &
-                                       (1. + (Lv**2 * qmid)/(cp*Rv*tmid**2)) )
+         qsat  =  saturation_specific_humidity( pmid, tmid, missing)
  
+         moist_lapse  =  (grav/cp) * ( (1. + (Lv    * qsat)/(   Rd*tmid   )) /   &
+                                       (1. + (Lv**2 * qsat)/(cp*Rv*tmid**2)) )
+
+
          !----------------------------------------------------
          !--- Get the parcel temperature
          !----------------------------------------------------
@@ -371,7 +375,7 @@ contains
          qseg_old  =  q_segment
          p_old     =  p_segment
 
-      end do
+      end do ctp_depth
 
 
       return
@@ -429,6 +433,74 @@ contains
       tdew  =  ( (log(e/A)*B) / (C-log(e/A)) ) + 273.15
 
  end subroutine dew_point
+!---------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+!---------------------------------------------------------------------------------
+!
+! subroutines:  Calculates the saturation specific humidity [kg/kg]
+!               following the AMS glossary definition
+!
+!---------------------------------------------------------------------------------
+ real(4) function saturation_specific_humidity(  p, t, missing )
+
+   implicit none
+
+!
+! Input/Output Variables
+!
+   real(4), intent(in ) :: missing  !** missing value
+   real(4), intent(in ) :: p        !** pressure [Pa]
+   real(4), intent(in ) :: t        !** dry bulb temp. [K]
+!
+! Local variables
+!
+   real(4)              ::  press, esat
+   real(4)              ::  numerator, denomenator
+   real(4), parameter   ::  t0    = 273.15, ep=0.622, es0=6.11, a=17.269, b=35.86
+   real(4), parameter   ::  onemep= 1.0 - ep
+
+!---------------------------------------------------------------------------------
+
+      !--------------------------------------------
+      !--- Initialization and preliminary calculations
+      !--------------------------------------------
+      saturation_specific_humidity  =  missing
+
+      !--------------------------------------------
+      !--- Perform a quick check for missing values
+      !--------------------------------------------
+      if( t.eq.missing .or. p.eq.missing ) return
+
+      !--------------------------------------------
+      !--- Convert pressure to hPa
+      !--------------------------------------------
+      press       =  p/1e2
+
+      !--------------------------------------------
+      !--- Split out the numerator and denomenator 
+      !--------------------------------------------
+      numerator   =  ep* (es0*exp((a*( t-t0))/( t-b))) 
+      denomenator =  press-onemep*(es0*exp((a*( t-t0))/( t-b)))
+
+      !--------------------------------------------
+      !--- Intermediate calculation
+      !--------------------------------------------
+      esat  =  numerator/denomenator
+
+      !--------------------------------------------
+      !--- Vapor pressure and co
+      !--------------------------------------------
+      saturation_specific_humidity  =  esat / (1 + esat)
+
+ end function saturation_specific_humidity
 !---------------------------------------------------------------------------------
 
 

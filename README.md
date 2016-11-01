@@ -22,27 +22,27 @@ Note that you have to instantiate the output variables before you can call the r
 
 Below is a brief description of each metric:
 
-1) Convective Triggering Potential (aka CTP-HIlow or just CTP)
+<b>1) Convective Triggering Potential (aka CTP-HIlow or just CTP)</b>
 
 Evaluates morning atmospheric profiles to determine whether dry or wet soils are more likely to trigger convection
 
-2) Mixing Diagrams
+<b>2) Mixing Diagrams</b>
 
 Uses the diurnal covariation of temperature and humidity to quantify heat and moisture fluxes into the planetary boundary layer
 
-3) Terrestrial Coupling Index (aka terrestrial coupling parameter)
+<b>3) Terrestrial Coupling Index (aka terrestrial coupling parameter)</b>
 
 Quantifies the degree to which soil moisture variations control changes in surface energy fluxes.  Can be latent or sensible heat flux and is generally enough to apply to other surface variables such as the relationship between LAI and sensible heat flux.
 
-4) Heated Condensation Framework
+<b>4) Heated Condensation Framework</b>
 
 Assesses the atmospheric background state with respect to convective initiation and identifies local versus non-locally triggered moist convection.
 
-5) Relative Humidity Tendency
+<b>5) Relative Humidity Tendency</b>
 
 Returns the contribution of surface energy fluxes, dry air entrainment, heat entrainment, and boundary layer growth to changes in top of boundary layer relative humidity.
 
-6) Soil Moisture Memory (the statisitcal form)
+<b>6) Soil Moisture Memory (the statisitcal form)</b>
 
 Determines the timescale at which initial soil moisture anomalies are retained over time.  The lagged autocorrelation of soil moisture is used to make the determination of memory. 
 

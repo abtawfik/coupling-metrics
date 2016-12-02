@@ -40,7 +40,7 @@ contains
 !               the right most dimension is typically space (like lat/lon or site)
 !               but it can also be depth OR both combined into a single dimension
 !               Output is dimensioned:  
-!               (days, spatial dimension like lat/lon or depth)
+!               (spatial dimension like lat/lon or depth or years; anything not lagged-R related)
 !---------------------------------------------------------------------------------
   subroutine soilm_memory( dim2,  ntim,  soilm,  smemory,  missing )
    implicit none
@@ -48,7 +48,7 @@ contains
 !
 ! Input/Output Variables
 !
-   integer, intent(in   )                         ::  dim2           ! *** missing value - useful for obs
+   integer, intent(in   )                         ::  dim2           ! *** some non-day dimension
    integer, intent(in   )                         ::  ntim           ! *** number of days
 
    real(4), intent(in   )                         ::  missing        ! *** missing value - useful for obs

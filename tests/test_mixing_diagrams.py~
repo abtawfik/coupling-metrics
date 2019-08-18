@@ -1,0 +1,10 @@
+'''Tests for mixing diagrams
+'''
+
+import numpy as np
+import pandas as pd
+
+import pytest
+from expected_output import MixDiagOutput as expected
+
+

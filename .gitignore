@@ -6,6 +6,10 @@ __pycache__/
 #Emacs
 *~
 
+#VI
+*.swp
+*#
+
 # C extensions
 *.so
 

@@ -13,6 +13,6 @@ cp    = Constant(value=1005.7, long_name='specific heat at constant pressure', u
 grav  = Constant(value=9.81  , long_name='acceleration due to gravity'       , unit='m/s^2')
 Rd    = Constant(value=287.04, long_name='gas constant for dry air'          , unit='J/(K * kg)')
 ep    = Constant(value=0.622 , long_name='gas constant ratio'                , unit='unitless')
-R_cp  = Constant(value=Rd/cp , long_name='poisson constant'                  , unit='unitless')
+R_cp  = Constant(value=Rd.value/cp.value , long_name='poisson constant'                  , unit='unitless')
 
 

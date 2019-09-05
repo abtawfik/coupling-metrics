@@ -147,3 +147,139 @@ def get_interval(ds):
 	if dt.shape[0] > 1:
 		raise ValueError(f'Time dimension has irregular time interval...must be constant interval')
 	return dt[0].astype(float)
+
+
+
+
+
+
+
+@curry
+def potential_temperature(t,p):
+  '''Calculate the potential temperature using a reference pressure of 1000 mb
+
+  Parameters
+  ----------
+  t : float
+    dry bulb temperature [K]
+
+  p : float
+    pressure at the same level as the temperature [Pa]
+
+  Returns
+  -------
+  float
+    potential temperature of the same size and type as the inputs
+
+  '''
+  p_ref = cnts.p_ref.value
+  R_cp = cnts.R_cp.value
+  return t * (p_ref/p)**R_cp
+
+
+
+@curry
+def saturation_temperature(t,p,q):
+  '''Calculate the saturation temperature
+
+  Parameters
+  ----------
+  t : float
+    dry bulb temperature [K]
+
+  p : float
+    pressure at the same level as the temperature [Pa]
+
+  q : float
+    specific humidity [kg/kg]
+
+  Returns
+  -------
+  float
+    saturation temperature of the same size and type as the inputs
+
+  '''
+  theta = potential_temperature(t,p)
+  return 55. + (2840./ (3.5*np.log(theta) - np.log(1e6*q/(622.+(1e3*q))) - 4.805))
+
+
+
+@curry
+def lcl_pressure(t,p,q):
+  '''Calculate the lifted condensation level pressure
+  Parameters
+  ----------
+  t : float
+    dry bulb temperature [K]
+
+  p : float
+    pressure at the same level as the temperature [Pa]
+
+  q : float
+    specific humidity [kg/kg]
+
+  Returns
+  -------
+  float
+    the pressure of the lifted condensation level [Pa]
+
+  '''
+  tsat  = saturation_temperature(t,p,q)
+  theta = potential_temperature(t,p)
+  return 1e3 * (tsat/theta) ** 3.4965
+
+
+@curry
+def lcl_height(t,p,q):
+  '''Calculate the lifted condensation level height
+
+  Parameters
+  ----------
+  t : float
+    dry bulb temperature [K]
+
+  p : float
+    pressure at the same level as the temperature [Pa]
+
+  q : float
+    specific humidity [kg/kg]
+
+  Returns
+  -------
+  float
+    the height of the lifted condensation level [Pa]
+
+  '''
+  #-------------------------------
+  # Define constants
+  #-------------------------------
+  Rd = cnts.Rd.value
+  grav = cnts.grav.value
+  #-------------------------------
+  # Calculate intermediate variables
+  #-------------------------------
+  tvirt = saturation_temperature(t,p,q)
+  plcl  = lcl_pressure(t,p,q)
+  return (Rd*tvirt) / (grav) * np.log((p/1e2)/plcl)
+
+
+
+@curry
+def virtual_temperature(t,q):
+  '''Calculate virtual temperature 
+
+  Parameters
+  ----------
+  t : float
+    dry bulb temperature [K]
+
+  q : float
+    specific humidity [kg/kg]
+
+  Returns
+  -------
+  float
+    the virtual temperature [K]
+
+  '''
+  return t  * (1. + (0.61*q))

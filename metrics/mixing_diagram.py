@@ -58,101 +58,15 @@ def surface_flux_increment(additional_heat, bowen, latent_energy, heat_energy):
     return updated_latent_energy, updated_sensible_energy
 
 
-def mixing_diagram(temp, pres, qhum, sh_flux, lh_flux, pblh, dt):
-    '''
-    Calculates the full suite of mixing diagram variables when
-    given a time series of of surface fluxes, surface 2m state variables, and 
-    boundary layer height. Mixing diagram variables returned are surface bowen
-    ratio, entrainment bowen ratio, advection ratios, and the various latent and 
-    sensible heat fluxes associated with those ratios.
-
-    Parameters
-    ----------
-    temp : float
-       dry bulb temperature [K]
-
-    pres : float
-       surface pressure [Pa]
-
-    qhum : float
-       specific humidity [kg/kg]
-
-    lh_flux : float
-       surface latent heat flux; ensure that the sensible heat flux is the
-       average over the past timestep [W/m^2]
-
-    sh_flux : float
-       surface sensible heat flux ensure that the latent heat flux is the
-       average over the past timestep [W/m^2]
-
-    pblh : float
-       planetary boundary layer height or height of the mixed layer [m]
-
-    dt : float
-       time step. also known as the sample interval [s]
-
-    Return
-    ------
-    float, float, float, float, float, float
-       returns the following variables
-       surface sensible heat flux (shf_sfc)
-       sensible heat entrainment flux (shf_ent) 
-       net sensible heat flux (shf_tot = shf_sfc + shf_ent)
-       surface latent heat flux (lhf_sfc)
-       latent heat entrainment flux (lhf_ent) [W/m^2]
-       net latent heat flux (lhf_tot = lhf_sfc + lhf_ent) 
-       All output is in units of [W/m^2]
-       (shf_sfc, shf_ent, shf_tot, lhf_sfc, lhf_ent, lhf_tot)
-
-    '''
-    #---------------------------------------------------
-    # Calculate the air density
-    #---------------------------------------------------
-    rho           = gf.air_density(pres, temp, qhum)
-    heat_energy   = gf.temp_to_energy(temp)
-    latent_energy = gf.shum_to_latent_energy(qhum)
-    bowen         = gf.bowen_ratio(sh_flux, lh_flux)
-    #---------------------------------------------------
-    # Calculate the change in heat energy due to 
-    # sensible heat flux
-    #---------------------------------------------------
-    dtheta        = gf.add_heat_to_layer(rho, sh_flux, pblh, dt)
-    #---------------------------------------------------
-    # Stagger the sensible and latent heat energy
-    # so 
-    #---------------------------------------------------
-    initial_heat      = np.roll(heat_energy  , 1)
-    initial_latent    = np.roll(latent_energy, 1)
-    initial_heat[0]   = np.nan
-    initial_latent[0] = np.nan
-
-    #---------------------------------------------------
-    # Calculate the air density
-    #---------------------------------------------------
-    updated_lh, updated_sh = surface_flux_increment( dtheta, bowen, initial_latent, initial_heat)
-    #---------------------------------------------------
-    # Separate all the energy components
-    #---------------------------------------------------
-    shf_tot = (heat_energy - initial_heat ) * (rho * pblh) / dt
-    shf_ent = (heat_energy - updated_sh   ) * (rho * pblh) / dt
-    shf_sfc = (updated_sh  - initial_heat ) * (rho * pblh) / dt
-
-    lhf_tot = (latent_energy - initial_latent) * (rho * pblh) / dt
-    lhf_ent = (latent_energy - updated_lh    ) * (rho * pblh) / dt
-    lhf_sfc = (updated_lh    - initial_latent) * (rho * pblh) / dt
-    return shf_sfc, shf_ent, shf_tot, lhf_sfc, lhf_ent, lhf_tot
 
 
-
-
-
-def mixing_diag(ds, 
-                temp='temperature', 
-                psfc='pressure', 
-                qhum='humidity', 
-                sh_flux='sh_flux', 
-                lh_flux='lh_flux', 
-                pblh='pbl_height'):
+def mixing_diagram(ds, 
+                   temp='temperature', 
+                   psfc='pressure', 
+                   qhum='humidity', 
+                   sh_flux='sh_flux', 
+                   lh_flux='lh_flux', 
+                   pblh='pbl_height'):
     '''
     Calculates the full suite of mixing diagram variables when
     given a time series of of surface fluxes, surface 2m state variables, and 
@@ -167,9 +81,6 @@ def mixing_diag(ds,
     
     temp : string
         dry bulb temperature [K]
-
-    temp : string
-      dry bulb temperature [K]
 
     pres : string
       surface pressure [Pa]
@@ -252,7 +163,68 @@ def mixing_diag(ds,
     lhf_sfc.name = 'lhf_sfc'
     lhf_ent.name = 'lhf_ent'
     lhf_net.name = 'lhf_net'
-
-    
     return xr.merge( [shf_sfc, shf_ent, shf_net, lhf_sfc, lhf_ent, lhf_net] )
+
+
+
+
+def lcl_deficit(ds, 
+                t2m ='t2m' , 
+                psfc='psfc',
+                q2m ='q2m' ,
+                pblh='pblh'):
+    '''
+    Calculates the Lifted condensation level deficit
+    The LCL deficit is the boundary layer height subtracted from the 
+    height of the LCL.
+
+    LCL deficit <= 0 means convective initiation is likely
+    LCL deficit > 0 means convective initiation is less likely
+    
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        an xarray dataset containing all the variable names
+    
+    t2m : string
+        2 meter dry bulb temperature [K]
+
+    pres : string
+      surface pressure [Pa]
+
+    q2m : string
+      2-meter specific humidity [kg/kg]
+
+    pblh : string
+      planetary boundary layer height or height of the mixed layer [m]
+
+    Return
+    ------
+    xarray Dataset
+       returns the LCL deficit in meters [m]
+
+    '''
+    #---------------------------------------------------
+    # Check that all required variable names are in the 
+    # dataset
+    #---------------------------------------------------
+    gf.check_input_is_xarray(ds)
+    gf.check_variable_names(ds, [t2m, psfc, q2m, pblh])
+    gf.check_time_is_a_dimension(ds)
+
+    #---------------------------------------------------
+    # Calculate the intermediate values
+    #---------------------------------------------------
+    theta = gf.potential_temperature(ds[t2m], ds[psfc])
+    tsat  = gf.saturation_temperature(ds[t2m], ds[psfc], ds[q2m])
+    plcl  = gf.lcl_pressure(ds[t2m], ds[psfc], ds[q2m])
+    tvirt = gf.virtual_temperature(ds[t2m], ds[q2m])
+    hlcl  = gf.lcl_height(ds[t2m], ds[psfc], ds[q2m])
+
+    lcl_deficit  =  hlcl - ds[pblh]
+    lcl_deficit.name = 'lcl_deficit'
+    return lcl_deficit
+
+
 

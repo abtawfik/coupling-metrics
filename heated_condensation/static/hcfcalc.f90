@@ -197,6 +197,7 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
       logp    =  missing
       qmix    =  missing
       qsat    =  missing
+      pot_k   =  missing
 
 
       !-----------------------------------------------------------------------------

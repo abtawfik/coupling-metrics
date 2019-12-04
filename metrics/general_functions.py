@@ -52,6 +52,37 @@ def temp_to_energy(t):
     return cnts.cp.value * t
 
 
+
+@curry
+def compute_saturation_shum(t,p):
+    '''Computes the saturation specific humidity
+
+    Parameters
+    ----------
+    t : numeric 
+    temperature in degrees Kelvin
+    
+    p : numeric
+    pressure in Pascals
+
+    Return
+    ------
+    the saturation specific humidity of the same size and type as 
+    temperature and pressure
+    '''
+    # Constants
+    ep     = cnts.ep.value
+    t0     = cnts.C_to_K.value
+    a,b    = cnts.a0.value, cnts.b0.value
+    es0    = cnts.es0.value
+    onemep = cnts.onemp.value
+    # Equation
+    esat = (ep* (es0*exp((a*(t-t0))/( t-b))) ) /  \
+           ((p/by100)-onemep*(es0*exp((a*( t-t0))/( t-b))))
+    return esat / (1+esat)          
+
+
+
 @curry
 def shum_to_latent_energy(q):
     '''Calculate the amount of latent heat energy in an air parcel

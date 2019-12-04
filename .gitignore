@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.nc
+*.ipynb
+
+profile*.csv
 
 #Emacs
 *~

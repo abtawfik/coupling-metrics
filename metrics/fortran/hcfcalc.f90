@@ -1,4 +1,3 @@
-
 !---------------------------------------------------------------------------------
 !
 ! Description:
@@ -75,9 +74,7 @@ contains
 !---------------------------------------------------------------------------------
 subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
                      t2m    , psfc   , q2m   , h2m     ,                   &
-                     TBM    , BCLH   , BCLP  , TDEF    ,                   &
-                     TRAN_H , TRAN_P , TRAN_T,                             &
-                     SHDEF_M, LHDEF_M, EADV_M                              )
+                     TBM    , BCLH   , BCLP  , TDEF                        )
 
    implicit none
 !
@@ -97,12 +94,6 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
    real(4), intent(out  )                       ::  BCLH        ! *** height above ground of convective threshold [m]
    real(4), intent(out  )                       ::  BCLP        ! *** pressure of convective threshold level [Pa]
    real(4), intent(out  )                       ::  TDEF        ! *** potential temperature deficit need to initiate [K]
-   real(4), intent(out  ), optional             ::  TRAN_H      ! *** energy transition height   [m]
-   real(4), intent(out  ), optional             ::  TRAN_P      ! *** energy transition pressure [Pa]
-   real(4), intent(out  ), optional             ::  TRAN_T      ! *** energy transition temperature  [K]
-   real(4), intent(out  ), optional             ::  SHDEF_M     ! *** sensible heat deficit of mixed layer [J/m2]
-   real(4), intent(out  ), optional             ::  LHDEF_M     ! *** latent heat deficit of mixed layer [J/m2]
-   real(4), intent(out  ), optional             ::  EADV_M      ! *** energy advantage of mixed layer [-]
 !
 ! Local variables
 !
@@ -116,29 +107,18 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
 
    integer                       ::  zz, cc
    integer                       ::  nlev
-   real(4), dimension(nlev1+1)   ::  shdef, lhdef, eadv
    logical, dimension(nlev1+1)   ::  notmissing
    real(4), dimension(nlev1+1)   ::  rhoh
    real(4), dimension(nlev1+1)   ::  allmissing
    real(4), dimension(nlev1+1)   ::  pbar, qdef, qmix, qsat, dpress, qbar, logp, hbar, tbar
    real(4), dimension(nlev1+1)   ::  tmp_k, press, pot_k
-   real(4), dimension(nlev1+1)   ::  hgt, qhum, pot_diff
+   real(4), dimension(nlev1+1)   ::  hgt, qhum
 
    real(4)                       ::  p_up, t_up, h_up, q_up, p_lo, t_lo, h_lo, q_lo, m_up, m_lo
    real(4)                       ::  pot2m, qbcl
    integer                       ::  i_unsat, i_sat, num_unsat, num_sat
 
-   real(4), dimension(nlev1+1)   ::  eadv_0
-   real(4), dimension(nlev1+1)   ::  xaxis, xaxis1, yaxis, yaxis1
-   real(4), dimension(nlev1+1)   ::  integral , below
-   real(4)                       ::  pbl_p, pbl_qdef
-   real(4)                       ::  pthresh, tthresh
-   real(4)                       ::  pbl_pot
-   integer                       ::  ibot, itop, iafter, ibefore, nbot, ibot0, itop0
 
-   real(4)                       ::  x_hi, x_lo, y_hi, y_lo
-   real(4)                       ::  integral0, below0, between0, total, between
-   integer                       ::  i_nobuoy, i_buoy, num_nobuoy, num_buoy
 
 !-----------------------------------------------------------------------------
 
@@ -149,12 +129,6 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
       BCLH     =   missing 
       BCLP     =   missing
       TDEF     =   missing
-      if( present(TRAN_H ) )   TRAN_H   =   missing
-      if( present(TRAN_P ) )   TRAN_P   =   missing
-      if( present(TRAN_T ) )   TRAN_T   =   missing
-      if( present(SHDEF_M) )   SHDEF_M  =   missing
-      if( present(LHDEF_M) )   LHDEF_M  =   missing
-      if( present(EADV_M ) )   EADV_M   =   missing
 
 
       !-----------------------------------------------------------------------------
@@ -460,348 +434,6 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
       pot2m  =  (t2m) * ((p_ref/psfc)**(R_cp))  *  (1. + 0.61*qbcl)
       TDEF   =  TBM  - pot2m
       if(TDEF.lt.0) TDEF=0.
-
-
-
-
-      !--------------------------------------------------------------------------------
-      !
-      !                        !!!  Energy Deficit Section  !!!
-      !    takes BCL and TBM thresholds to estimate sensible and latent
-      !    heat energy [J/m2] necessary for initiating convection.  Does not discriminate between
-      !    shallow or deep convection.  Also outputs potential temperautre, pressure, and height of
-      !    of the transition from latent heat to sensible heat advantage.  If there is no transition
-      !    then transition levels are set to missing values.
-      !
-      !--------------------------------------------------------------------------------
-      
-      !---------------------------------------------------
-      !--------
-      !--------  If any extended HCF variables are no passed
-      !--------  to the subroutine thent do not perform any
-      !--------  calculation and those that ARE provided
-      !--------  set to zero.
-      !--------  *** NOTE:  ALL EXTENDED HCF VARIABLES
-      !--------             MUST BE PROVIDED FOR any of
-      !--------             TO BE CALCULATED
-      !--------  Extended HCF Variables are all those the
-      !--------  Optional tag during variable declaration
-      !--------
-      !---------------------------------------------------
-      if( .not.present(TRAN_H ) .or.  & 
-          .not.present(TRAN_P ) .or.  & 
-          .not.present(TRAN_T ) .or.  & 
-          .not.present(SHDEF_M) .or.  & 
-          .not.present(LHDEF_M) .or.  & 
-          .not.present(EADV_M )       ) then
-
-          if( present(TRAN_H ) )   TRAN_H   =   missing
-          if( present(TRAN_P ) )   TRAN_P   =   missing
-          if( present(TRAN_T ) )   TRAN_T   =   missing
-          if( present(SHDEF_M) )   SHDEF_M  =   missing
-          if( present(LHDEF_M) )   LHDEF_M  =   missing
-          if( present(EADV_M ) )   EADV_M   =   missing
-          return
-
-      end if  
-
-
-
-
-      !---------------------------------------------------
-      !--------
-      !--------  No energy deficits because
-      !--------  threshold already reached
-      !--------  meaning convection already initiated
-      !--------
-      !---------------------------------------------------
-      if( TDEF.le.0 ) then
-         SHDEF_M    =  0.
-         LHDEF_M    =  0.
-         EADV_M     =  missing
-         TRAN_T     =  missing
-         TRAN_P     =  missing
-         TRAN_H     =  missing
-         return
-      end if
-
-
-      !---------------------------------------------------
-      !--------
-      !--------  Find pressure level and mixed specific
-      !--------  humidity deficit given a potential temperature
-      !--------
-      !---------------------------------------------------
-      pbl_pot    =  pot2m
-      !---------------------------------------------------
-      !-- Calculate difference between reference pot. temp. (K)
-      !---------------------------------------------------
-      where( pot_k.ne.missing .and. press.ne.missing .and. tmp_k.gt.0 )   pot_diff  =  pbl_pot - pot_k
-
-      !***********************************************************
-      !***   Calculate slope of each variable to find the      ***
-      !***   y-intercept for each variable;                    ***
-      !***   Meaning locate the two data points surrounding    ***
-      !***   the sign change in qdef and linearly interpolate  ***
-      !***   to find the "zero point"                          ***
-      !***********************************************************
-      !-----------------------------------------------------------------------------
-      !----- Find the point where the sign first turns negative from the ground up
-      !-----------------------------------------------------------------------------
-      !*** Highest buoyant level ***
-      num_buoy    =   count(pot_diff.ne.missing .and. pot_diff.gt.0, DIM = 1)
-      if( num_buoy.gt.0 ) then
-         i_buoy   =   minloc( pbar, DIM = 1, MASK = pot_diff.ne.missing .and. pot_diff.gt.0 )
-      else
-         i_buoy   =   0
-      end if
-      !*** Lowest negatively buoyant level ***
-      num_nobuoy  =   count(pot_diff.ne.missing .and. pot_diff.le.0, DIM = 1)
-      if( num_nobuoy.gt.0 ) then
-         i_nobuoy =   maxloc( pbar, DIM = 1, MASK = pot_diff.ne.missing .and. pot_diff.le.0 )
-      else
-         i_nobuoy =   0
-      end if
-
-      !-----------------------------------------------------------------------------
-      !--- Check to make sure not all layers are buoyant because that is not physical
-      !-----------------------------------------------------------------------------
-      if( i_nobuoy.eq.0 ) then
-          write(*,*) " =========== ERROR  in locating saturation profiles ============ "
-          write(*,*) i_buoy, i_nobuoy
-          do zz=1,nlev
-             write(*,*)  zz,  pbar(zz)/1e2,  pot_k(zz),  pot2m
-          end do
-          stop
-      end if
-
-      !-----------------------------------------------------------------------------
-      !--- Check to see if first level is NOT buoyant;
-      !--- If so then it means thermally produced PBL is below the first layer
-      !-----------------------------------------------------------------------------
-      if( i_nobuoy.eq.1 ) then
-          i_nobuoy   =  2
-          i_buoy     =  1
-      end if
-
-      !-----------------------------------------------------------------------------
-      !--- Get the upper and lower bounds for each variable to be calc'd at the BCL
-      !-----------------------------------------------------------------------------
-      p_up        =  logp    (i_nobuoy)
-      q_up        =  qdef    (i_nobuoy)
-      t_up        =  pot_diff(i_nobuoy)
-      p_lo        =  logp    (i_buoy)
-      q_lo        =  qdef    (i_buoy)
-      t_lo        =  pot_diff(i_buoy)
-
-      !-----------------------------------------------------------------------------
-      !--- Calculate output variables; BCL height, BCL pressure,
-      !--- Buoyant Mixing Potential Temp, and Potential Temperature Deficit
-      !-----------------------------------------------------------------------------
-      pbl_p     =  exp( p_up - ((p_up-p_lo)/(t_up-t_lo))*t_up )
-      pbl_qdef  =     ( q_up - ((q_up-q_lo)/(t_up-t_lo))*t_up )
-
-
-      !----------------------------
-      !--------
-      !--------  Initialization Energy Deficit working variables
-      !--------
-      !----------------------------
-      shdef      =  missing
-      lhdef      =  missing
-      eadv       =  missing
-      eadv_0     =  missing
-
-
-      !-----------------------------------------------------------------------------
-      !-- Make sure pressure of PBL is above the lowest level
-      !-- This can occur for a very shallow boundary layer and is likely due to mixing assumptions
-      !-- made in the boundary layer calculation where it is assumed to be thermally driven
-      !-- In this case we assume the mixed layer is between the surface and the first atmo layer
-      !-----------------------------------------------------------------------------
-      if( pbl_p.gt.psfc ) pbl_p = psfc - (psfc - press(2))/2.
-
-
-      !*************************************************
-      !********                                 ********
-      !********         --Section--             ********
-      !********  Sensible Heat Deficit [J/m2]   ********
-      !********                                 ********
-      !*************************************************
-      xaxis   =   press
-      yaxis   =   pot_k
-      pthresh =   BCLP
-      tthresh =   TBM
-
-      yaxis1  =   missing
-      xaxis1  =   missing
-      yaxis1(:nlev-1)  =  yaxis(2:nlev)
-      xaxis1(:nlev-1)  =  xaxis(2:nlev)
-
-      !-----------------------------------------------------------------------------
-      !--------
-      !--------  Calculate Integrals from Mixed Layer Down and Mixed Layer up
-      !--------
-      !-----------------------------------------------------------------------------
-      !*****************************************
-      !*******  Deficit for each layer  ********
-      !*****************************************
-      itop    =   minloc( xaxis1,  DIM = 1, MASK = xaxis1.gt.pthresh .and. xaxis1.ne.missing )
-      ibot    =   1
-      nbot    =   itop - ibot + 1
-      if( psfc.ne.missing )    total   =   (cp_g)  *  tthresh  *  (psfc - pthresh)
-
-      integral  =  0.
-      below     =  0.
-      if( itop.eq.ibot ) then
-          !---- Case where BCL is within the first layer (i.e. between 1st and 2nd index)
-          between =   (cp_g)  *  0.5*(yaxis(1)+tthresh)  *  (xaxis (1)-pthresh)
-      else
-          between =   (cp_g)  *  0.5*(yaxis1(itop)+tthresh)  *  (xaxis1(itop)-pthresh)
-          do zz=ibot,itop
-             integral(zz)    =  sum(  (cp_g)  *  0.5*(yaxis(zz:itop)+yaxis1(zz:itop))  *  (xaxis(zz:itop)-xaxis1(zz:itop)) )
-             below   (zz+1)  =        (cp_g)  *  yaxis(zz+1)    *  (xaxis(ibot) - xaxis(zz+1))
-          end do
-      end if
-
-
-      !-----------------------------------------------------------------------------
-      !--------  Deficit for mixed layer only
-      !-----------------------------------------------------------------------------
-      itop    =   minloc( xaxis1,  DIM = 1,  MASK = xaxis1.gt.pthresh                          .and.  xaxis1.ne.missing )
-      if(  all(.not.(xaxis1.gt.pthresh  .and.  xaxis.lt.pbl_p   .and.  xaxis1.ne.missing))  )  then
-         ibot =   itop
-      else
-         ibot =   maxloc( xaxis1,  DIM = 1,  MASK = xaxis1.gt.pthresh  .and.  xaxis.lt.pbl_p   .and.  xaxis1.ne.missing )
-      end if
-      nbot    =   itop - ibot + 1
-      itop0   =   itop
-      ibot0   =   ibot
-
-
-      integral0  =  0.
-      below0     =  0.
-      if( itop.eq.ibot ) then
-          !---- Case where BCL is within the first layer (i.e. between 1st and 2nd index)
-          between0  =   (cp_g)  *  0.5*(pbl_pot+tthresh)  *  (pbl_p  -  pthresh)
-          below0    =   (cp_g)  *  pbl_pot                *  (psfc   -  pbl_p  )
-          if( between0.lt.0 )  between0  =  0.
-      else
-          !*** explicit layer and BCL
-          between0   =                 (cp_g)  *  0.5*(yaxis1(itop)     + tthresh)            *  (xaxis1(itop)     - pthresh)
-          integral0  =   sum(          (cp_g)  *  0.5*(yaxis(ibot:itop) + yaxis1(ibot:itop))  *  (xaxis(ibot:itop) - xaxis1(ibot:itop)) )
-          !*** explicit layer and PBL
-          between0   =   between0  +  ((cp_g)  *  0.5*(yaxis(ibot)      + pbl_pot)            *  (pbl_p            - xaxis (ibot)))
-          below0     =                 (cp_g)  *  pbl_pot                                     *  (psfc             - pbl_p)
-      end if
-
-      !--------------------------------------------------------------------
-      !--------   Calculate the Sensible Heat Deficit [J/m2]
-      !--------   Equation:
-      !--------   SHdef  =  Energy from BCL to Surface                                                             (scalar  -->  Total   )  MINUS
-      !--------             the progessive integral from mixed layer to last resolved level directly below the BCL (nlev    -->  Integral)  MINUS
-      !--------             the energy between the last resolved level and the BCL (scalar)                        (scalar  -->  Between )  MINUS
-      !--------             the energy from the mixed layer to the surface                                         (nlev    -->  Below   )
-      !--------
-      !--------   ***** NOTE:  Sensible heat deficit is calculated from the 1st layer to the BCL
-      !--------
-      !--------------------------------------------------------------------
-      shdef   =   total  -  integral  -  between  -  below
-      where( press.lt.BCLP  .or.  press.eq.missing )   shdef   =   0.
-      SHDEF_M   =   total  -  integral0  -  between0  -  below0
-
-
-
-
-      !*************************************************
-      !********                                 ********
-      !********         --Section--             ********
-      !********   Latent Heat Deficit [J/m2]    ********
-      !********                                 ********
-      !*************************************************
-      !-----------------------------------------------------------------------------
-      !--- Make sure qdef at PBL > 0
-      !--- this occurs when the PBL is really close (probably too close to be ignored as not having convection)
-      !--- For practical purposes, if TDEF/=0 then there is no convection and so QDEF at the PBL as estimated
-      !--- should also be greater than zero, so here we set PBL qdef = some small number > 0
-      !-----------------------------------------------------------------------------
-      if( pbl_qdef.lt.0 )  pbl_qdef  =  0.00001
-
-
-      !--------------------------------------------------------------------
-      !--------   Calculate the Latent Heat Deficit [J/m2]
-      !--------   Equation:
-      !--------   LHdef  =  latent heat of vaporization/gravity  X  pressure difference mixed layer down  X  Specific Humidity Deficit
-      !--------
-      !--------   ***** NOTE:  Latent heat deficit is calculated from the 1st layer to the BCL
-      !--------
-      !--------------------------------------------------------------------
-      where( qdef .gt.0      .and.  qdef .ne.missing )     lhdef     =   Lv_g  *  qdef  *  dpress
-      where( press.lt.BCLP   .or.   press.eq.missing )     lhdef     =   0.
-      if( psfc-pbl_p.le.0 ) then
-          LHDEF_M   =   Lv_g  *  pbl_qdef  *  (dpress(1))
-      else
-          LHDEF_M   =   Lv_g  *  pbl_qdef  *  (psfc - pbl_p)
-      end if
-
-
-      !*************************************************
-      !********                                 ********
-      !********         --Section--             ********
-      !********   Energy Advantage and 45deg    ********
-      !********                                 ********
-      !*************************************************
-      where( lhdef  .ne.missing  .and.  shdef  .ne.missing  .and.   &
-           ( lhdef  .ne.0        .or.   shdef  .ne.0     ))    eadv    =  atan2( lhdef  , shdef   )  *  r2d
-      if   ( LHDEF_M.gt.0        .and.  SHDEF_M.gt.0      )    EADV_M  =  atan2( LHDEF_M, SHDEF_M )  *  r2d
-
-
-      !************************************
-      !**** special no transition case ****
-      !************************************
-      if( all(eadv.eq.missing) .or. all(eadv.lt.45 .or. eadv.eq.missing) .or. all(eadv.gt.45 .or. eadv.eq.missing) ) then
-        TRAN_P  =  missing
-        TRAN_T  =  missing
-        TRAN_H  =  missing
-        return
-      end if
-
-      !-----------------------------------------------------------------------------
-      !--------
-      !--------  Find where Energy advantage == 45 degrees
-      !--------  If this does not occur anywhere then set all the values to missing
-      !-----------------------------------------------------------------------------
-      where( eadv.ne. missing )  eadv_0  =  eadv - 45.
-      ibefore =  maxloc( hgt, DIM = 1,  MASK = eadv_0.le.0  .and.  eadv_0.ne.missing )  !location right before transition
-      iafter  =  minloc( hgt, DIM = 1,  MASK = eadv_0.gt.0  .and.  eadv_0.ne.missing )  !location right after transition
-
-      !************************************
-      !**** special no transition case ****
-      !************************************
-      if( iafter.eq.0 .or. ibefore.eq.0 ) then   !.or. iafter.le.ibefore) then
-        TRAN_P  =  missing
-        TRAN_T  =  missing
-        TRAN_H  =  missing
-        return
-      end if
-
-      !*******************************************************************************
-      !**** linear interpolation to find temp, height, and pressure of transition ****
-      !*******************************************************************************
-      x_hi    =  eadv_0(iafter )
-      x_lo    =  eadv_0(ibefore)
-      y_hi    =  log(press(iafter ))
-      y_lo    =  log(press(ibefore))
-      TRAN_P  =  exp(  y_hi -  (((y_hi-y_lo)/(x_hi-x_lo)) * x_hi) )
-
-      y_hi    =  pot_k(iafter )
-      y_lo    =  pot_k(ibefore)
-      TRAN_T  =  y_hi -  (((y_hi-y_lo)/(x_hi-x_lo)) * x_hi)
-
-      y_hi    =  hgt(iafter )
-      y_lo    =  hgt(ibefore)
-      TRAN_H  =  y_hi -  (((y_hi-y_lo)/(x_hi-x_lo)) * x_hi)
-
 
       return
 

@@ -39,6 +39,23 @@
 ! Converted to F90 code -- Joshua Roundy on Apr 2015
 ! Modified by           -- A.B. Tawfik on June 2015
 !
+!---------------------------------------------------------------------------------
+module Conv_Trig_Pot_Mod
+
+     !
+     ! subroutine name 
+     !
+     public ctp_hi_low
+     public dew_point
+     public saturation_specific_humidity
+
+!---------------------------------------------------------------------------------
+contains
+!---------------------------------------------------------------------------------
+
+
+
+!---------------------------------------------------------------------------------
 !
 ! subroutines:  Calculates the CTP and HiLow
 !               Assumes left most dimension is level
@@ -488,3 +505,5 @@
 
 
 
+
+end module Conv_Trig_Pot_Mod

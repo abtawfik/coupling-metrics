@@ -1,47 +1,49 @@
-#---------------------------------------------------------------------------------
-# Purpose:
-#
-# !DESCRIPTION:  
-# This subroutine calculates the convective triggering potential (CTP) given early
-# morning sounding profiles and also includes a low-level humidity index (Hi_low).
-# The CTP returns useful information regarding which profile is primed for convection
-# under high surface senisble heat flux and which profiles are likely to trigger
-# convection under enhanced latent heat flux. 
-# Note that this does not apply to established boundary layer profiles because 
-# assumptions are made regarding the presences of inversion.
-#
-#   CTP     =  integral of curve between the moist adiabat and environmental lapse
-#              rate from 100 mb above the ground to 300mb above the ground
-#               _       _                _       _
-#              |         |              |         |
-#   Hi_low  =  | T - T_d |          -   | T - T_d |
-#              |_       _|50mb abg      |_       _|150mb abg
-#
-#              where T_d = dew point temperature [K] ;  T = air temperature [K]
-#                    abg = above ground
-#
-# 
-#  References:  ** Original Method **
-#               Findell, K.L., Eltahir, E.A.B. 2003: Atmospheric Controls on 
-#               Soil Moisture-Boundary Layer Interactions. Part I: Framework
-#               Development. Journal of Hydrometeorology
-#
-#               Findell, K.L., Eltahir, E.A.B. 2003: Atmospheric Controls on
-#               Soil Moisture-Boundary Layer Interactions. Part II: Feedbacks
-#               within the Continental United States. Journal of Hydrometeorology
-#
-#               ** Application and Evaluation **
-#               Craig R. Ferguson and Eric F. Wood, 2011: Observed Land–Atmosphere
-#               Coupling from Satellite Remote Sensing and Reanalysis. J. Hydrometeor,
-#
-# Author and Revision History: 
-# Original C code       -- Craig Ferguson 
-# Converted to F90 code -- Joshua Roundy on Apr 2015
-# Modified by           -- A.B. Tawfik on June 2015
-#
-#
-#---------------------------------------------------------------------------------
-  subroutine ctp_hi_low ( nlev_in, tlev_in, qlev_in, plev_in,  &
+'''
+---------------------------------------------------------------------------------
+  Purpose:
+ 
+  !DESCRIPTION:  
+  This subroutine calculates the convective triggering potential (CTP) given early
+  morning sounding profiles and also includes a low-level humidity index (Hi_low).
+  The CTP returns useful information regarding which profile is primed for convection
+  under high surface senisble heat flux and which profiles are likely to trigger
+  convection under enhanced latent heat flux. 
+  Note that this does not apply to established boundary layer profiles because 
+  assumptions are made regarding the presences of inversion.
+ 
+    CTP     =  integral of curve between the moist adiabat and environmental lapse
+               rate from 100 mb above the ground to 300mb above the ground
+                _       _                _       _
+               |         |              |         |
+    Hi_low  =  | T - T_d |          -   | T - T_d |
+               |_       _|50mb abg      |_       _|150mb abg
+ 
+               where T_d = dew point temperature [K] ;  T = air temperature [K]
+                     abg = above ground
+ 
+  
+   References:  ** Original Method **
+                Findell, K.L., Eltahir, E.A.B. 2003: Atmospheric Controls on 
+                Soil Moisture-Boundary Layer Interactions. Part I: Framework
+                Development. Journal of Hydrometeorology
+ 
+                Findell, K.L., Eltahir, E.A.B. 2003: Atmospheric Controls on
+                Soil Moisture-Boundary Layer Interactions. Part II: Feedbacks
+                within the Continental United States. Journal of Hydrometeorology
+ 
+                ** Application and Evaluation **
+                Craig R. Ferguson and Eric F. Wood, 2011: Observed Land–Atmosphere
+                Coupling from Satellite Remote Sensing and Reanalysis. J. Hydrometeor,
+ 
+  Author and Revision History: 
+  Original C code       -- Craig Ferguson 
+  Converted to F90 code -- Joshua Roundy on Apr 2015
+  Modified by           -- A.B. Tawfik on June 2015
+ 
+ 
+ ---------------------------------------------------------------------------------
+'''
+subroutine ctp_hi_low ( nlev_in, tlev_in, qlev_in, plev_in,  &
                           t2m_in , q2m_in , psfc_in, CTP, HILOW , missing )
 
    implicit none
@@ -145,29 +147,19 @@
       if(     psfc.eq.missing   .or.  all(plev.eq.missing)  .or.  &
           all(tlev.eq.missing)  .or.  all(qlev.eq.missing)        )   return
 
-      #-----------------------------------------------------------------------------------
-      #-- Check pressure units --> need pressure to be in Pascals for plev and psfc
-      #-----------------------------------------------------------------------------------
-      gf.check_pressure_units(psfc)
-      gf.check_pressure_units(plev)
+#-----------------------------------------------------------------------------------
+#-- Check pressure units --> need pressure to be in Pascals for plev and psfc
+#-----------------------------------------------------------------------------------
+gf.check_pressure_units(psfc)
+gf.check_pressure_units(plev)
 
 
-      #-----------------------------------------------------------------------------
-      #-- Make sure there are no higher pressure levels than that given by surface pressure
-      #-- Important for models that have atmo levels below the surface
-      #-----------------------------------------------------------------------------
-      plev = plev.where( plev.le.psfc, np.nan )
+#-----------------------------------------------------------------------------
+#-- Make sure there are no higher pressure levels than that given by surface pressure
+#-- Important for models that have atmo levels below the surface
+#-----------------------------------------------------------------------------
+plev = plev.where( plev.le.psfc, np.nan )
 
-      !-----------------------------------------------------------------------------
-      !-- Collapse the missing values along the level dimension so that mid-points
-      !-- can be calculated using levels on either side of the missing level.
-      !-- This would avoid just ignoring the level
-      !-- Use the PACK function
-      !-----------------------------------------------------------------------------
-      notmissing =  .not.( plev.eq.missing .or. tlev.eq.missing .or. qlev.eq.missing )
-      tlev       =  pack (tlev , notmissing, allmissing)
-      plev       =  pack (plev , notmissing, allmissing)
-      qlev       =  pack (qlev , notmissing, allmissing)
 
 
       !-----------------------------------------------------------------------------------

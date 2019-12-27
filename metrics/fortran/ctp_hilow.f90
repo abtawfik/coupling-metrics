@@ -46,8 +46,8 @@ module Conv_Trig_Pot_Mod
      ! subroutine name 
      !
      public ctp_hi_low
-     private dew_point
-     private saturation_specific_humidity
+     public dew_point
+     public saturation_specific_humidity
 
 !---------------------------------------------------------------------------------
 contains

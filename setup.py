@@ -1,4 +1,4 @@
-from setuptools import setup  #, find_packages
+from setuptools import setup
 
 
 entry = '''
@@ -9,8 +9,14 @@ comet=comet.cli:comet
 setup( name = 'CoMeT',
        version='1.0',
        author_email='abtawfik@umich.edu',
-       packages=['comet'],
+       packages=['comet', 'comet.metrics'],
        include_package_data=True,
-       install_requires=['click', 'xarray', 'dask[complete]', 'toolz'],
+       install_requires=['click',
+                         'xarray',
+                         'dask[complete]',
+                         'toolz',
+                         'numpy',
+                         'netcdf4',
+                         'cfgrib'],
        entry_points=entry
      )

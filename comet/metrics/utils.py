@@ -2,14 +2,15 @@
 A set of functions that are not specific to any specific metric
 Functions such as calculating saturation specific humidity or air density
 '''
-
-# 3rd party packages
+######################
+# 3rd party packages #
+######################
 import numpy as np
 import pandas as pd
 from toolz.curried import curry, compose
 
-import constants as cnts
 import xarray as xr
+from . import constants as cnts
 
 @curry
 def air_density(p, t, q):
@@ -173,11 +174,33 @@ def check_time_is_a_dimension(ds):
         raise TypeError(f'Xarray must have a "time" dimension. Current dimension names: {list(ds.dims)}')
         
 @curry
-def get_interval(ds):
-	dt = np.unique(ds.time.diff(dim='time').values.astype('timedelta64[s]'))
+def get_interval(ds, time_dim):
+	dt = np.unique(ds[time_dim].diff(dim=time_dim).values.astype('timedelta64[s]'))
 	if dt.shape[0] > 1:
 		raise ValueError(f'Time dimension has irregular time interval...must be constant interval')
 	return dt[0].astype(float)
+
+
+@curry
+def get_time_axis_name(x):
+    return compose( is_there_a_time_dim, identify_time_axis_name )(x)
+
+@curry
+def is_there_a_time_dim(dim):
+    if len(dim) == 0:
+        raise ValueError('There is no valid time dimension present in your dataset.')
+    if len(dim) > 1:
+        print(f'::Warning:: There is more than one time dimension...using {dim}')
+    return dim[0]
+
+
+@curry
+def identify_time_axis_name(x):
+    return [v for v in x.variables if np.issubdtype(x[v].dtype, np.datetime64) ]
+    
+@curry
+def covariance(x, y, dim):
+    return ((x - x.mean()) * (y - y.mean())).groupby(dim).sum() / x.count()
 
 
 

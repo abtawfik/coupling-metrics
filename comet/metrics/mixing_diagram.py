@@ -10,8 +10,8 @@ import xarray as xr
 ####################
 # Package specific #
 ####################
-import constants as cnts
-import utils as gf
+from . import constants as cnts
+from . import utils as gf
 
 
 class MixingDiagram(object):
@@ -38,15 +38,15 @@ class MixingDiagram(object):
   def __init__(self):
       return None
   
-  def compute(self, 
-              ds, 
-              averaging_time='season',
-              temp='temperature',
-              psfc='pressure',
-              qhum='humidity',
-              sh_flux='sh_flux',
-              lh_flux='lh_flux',
-              pblh='pbl_height'):
+  def compute(self         , 
+              ds           , 
+              temp    : str,
+              psfc    : str,
+              qhum    : str,
+              sh_flux : str,
+              lh_flux : str,
+              pblh    : str,
+              averaging='season'):
       '''Compute the necessary variable set for creating a mixing diagram figure
       including the entrainment and surface bowen ratio
 
@@ -55,7 +55,7 @@ class MixingDiagram(object):
       ds : xarray.Dataset
           an xarray dataset containing all the variable names
 
-      averaging_time : string
+      averaging : string
           averaging time window to use when computing a mixing diagram
           options - 'season' and 'month'
           Interpret this as being one mixing diagram per 'month' or 'season'
@@ -109,14 +109,18 @@ class MixingDiagram(object):
       # Group by hour of day so we can compute the mean and standard deviation of energy states
       # i.e. Line in the mixing diagram figure
       #-----------------------------------------------------------------------------------
-      diurnal_cycle = ds_mixing[energy_state_names].groupby('time.hour')
-      diurnal_states = xr.merge( [diurnal_cycle.mean('time').rename_vars(rename_energy_means),
-                                  diurnal_cycle.std ('time').rename_vars(rename_energy_sdev )])
+      apply_mean = lambda x : x.groupby('time.hour').mean('time').rename_vars(rename_energy_means)
+      apply_std  = lambda x : x.groupby('time.hour').std('time').rename_vars(rename_energy_sdev)
+      apply_sum  = lambda x : x.groupby('time.day').std('time')
+      
+      diurnal_cycle = ds_mixing[energy_state_names].groupby(f'time.{averaging}')
+      diurnal_states = xr.merge( [diurnal_cycle.apply(apply_mean),
+                                  diurnal_cycle.apply(apply_std)])
       #-----------------------------------------------------------------------------------
       # Group by day to accumulate each flux variable and then take the ratios to get
       # the daily bowen ratio and entrainment ratio
       #-----------------------------------------------------------------------------------
-      daily_sums = ds_mixing[energy_flux_names].groupby('time.day').sum('time')
+      daily_sums = ds_mixing[energy_flux_names].groupby(f'time.{averaging}').apply(apply_sum)
       heat_entrain_ratio   = (daily_sums.shf_ent / daily_sums.shf_sfc).where( daily_sums.shf_sfc != 0, np.nan) 
       latent_entrain_ratio = (daily_sums.lhf_ent / daily_sums.lhf_sfc).where( daily_sums.lhf_sfc != 0, np.nan) 
       entrain_bowen_ratio  = (daily_sums.shf_ent / daily_sums.lhf_ent).where( daily_sums.lhf_ent != 0, np.nan) 
@@ -225,8 +229,8 @@ class MixingDiagram(object):
       #---------------------------------------------------
       gf.check_input_is_xarray(ds)
       gf.check_variable_names(ds, [temp, psfc, qhum, sh_flux, lh_flux, pblh])
-      gf.check_time_is_a_dimension(ds)
-      dt = gf.get_interval(ds)
+      time_dim = gf.get_time_axis_name(ds)
+      dt = gf.get_interval(ds, time_dim)
       #---------------------------------------------------
       # Calculate the air density
       #---------------------------------------------------

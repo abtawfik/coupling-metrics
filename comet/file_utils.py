@@ -13,8 +13,6 @@ import dask.dataframe as dd
 from toolz.curried import compose, curry
 
 
-def FUNC_DUMMY():
-    return 10
 
 
 def get_data(files):
@@ -48,19 +46,14 @@ def read_data_files(files):
     extension = Path(files[0]).suffix
     if extension == '.csv':
         nparts = len(files)
-        output = dd.concat( [dd.read_csv(f, sep=' ').astype(float)
+        return dd.concat( [dd.read_csv(f, sep=' ').astype(float)
                              for f in files] ).repartition(npartitions=nparts)
-        return output
     
     elif extension in ['.nc', '.nc4', '.netcdf', '.netcdf4', '.cdf']:
-        ds = xr.open_mfdataset(files, combine='by_coords')
-        output = FUNC_DUMMY()
-        return output
+        return xr.open_mfdataset(files, combine='by_coords')
     
     elif extension in ['.grb', '.grib', '.grib2', '.grb2']:
-        ds = xr.open_mfdataset(files, combine='by_coords', engine='cfgrib')
-        output = FUNC_DUMMY()
-        return output
+        return xr.open_mfdataset(files, combine='by_coords', engine='cfgrib')
     
     else:
         raise TypeError('Files are not the correct type... need to be netcdf, grib, or csv')

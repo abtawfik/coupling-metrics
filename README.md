@@ -66,7 +66,7 @@ print(cm.list_metrics)
 
 ## List of available metrics:
 
-1. [Convective Triggering Potential]('http://journals.ametsoc.org/doi/abs/10.1175/1525-7541%282003%29004%3C0552%3AACOSML%3E2.0.CO%3B2') (aka CTP-HiLow or just CTP)
+1. [Convective Triggering Potential](http://journals.ametsoc.org/doi/abs/10.1175/1525-7541%282003%29004%3C0552%3AACOSML%3E2.0.CO%3B2) (aka CTP-HiLow or just CTP)
 Evaluates morning atmospheric profiles to determine whether dry or wet soils are more likely to trigger convection
 
 2. [Mixing Diagrams](http://journals.ametsoc.org/doi/abs/10.1175/2009JHM1066.1)
@@ -78,10 +78,10 @@ Quantifies the degree to which soil moisture variations control changes in surfa
 4. [Heated Condensation Framework](http://journals.ametsoc.org/doi/abs/10.1175/JHM-D-14-0117.1)
 Assesses the atmospheric background state with respect to convective initiation and identifies local versus non-locally triggered moist convection.
 
-5. [Relative Humidity Tendency]('http://journals.ametsoc.org/doi/abs/10.1175/1525-7541(2004)005%3C0086%3AIOSMOB%3E2.0.CO%3B2')
+5. [Relative Humidity Tendency](http://journals.ametsoc.org/doi/abs/10.1175/1525-7541(2004)005%3C0086%3AIOSMOB%3E2.0.CO%3B2)
 Returns the contribution of surface energy fluxes, dry air entrainment, heat entrainment, and boundary layer growth to changes in top of boundary layer relative humidity.
 
-6. [Soil Moisture Memory]('http://journals.ametsoc.org/doi/abs/10.1175/1520-0442(1988)001%3C0523:TIOPEO%3E2.0.CO;2') (the statisitcal form)
+6. [Soil Moisture Memory](http://journals.ametsoc.org/doi/abs/10.1175/1520-0442(1988)001%3C0523:TIOPEO%3E2.0.CO;2) (the statisitcal form)
 Determines the timescale at which initial soil moisture anomalies are retained over time.  The lagged autocorrelation of soil moisture is used to make the determination of memory. 
 
 

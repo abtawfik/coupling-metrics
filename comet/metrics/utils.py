@@ -154,7 +154,7 @@ def add_heat_to_layer(rho, heat_flux, depth, time_change):
 def check_variable_names(ds, variable_names):
     # Loop over the variable names and throw error if variable is not in dataset
     for name in variable_names:
-        if not name in ds:
+        if not name in ds and name is not None:
             raise KeyError(f'variable {name} is not in your dataset')
 
 

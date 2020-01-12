@@ -15,9 +15,6 @@ Calculate various state-of-the-art land-atmosphere coupling metrics
     * - tests
       - | |travis|
         | |codecov|
-    * - package
-      - | |version| |wheel| |supported-versions| |supported-implementations|
-        | |commits-since|
 .. |docs| image:: https://readthedocs.org/projects/coupling-metrics/badge/?style=flat
     :target: https://readthedocs.org/projects/coupling-metrics
     :alt: Documentation Status
@@ -34,6 +31,9 @@ Calculate various state-of-the-art land-atmosphere coupling metrics
 .. end-badges
 
 
+
+   
+
 Installation
 ============
 
@@ -46,12 +46,16 @@ You can also install the in-development version with::
     pip install https://github.com/abtawfik/coupling-metrics/archive/master.zip
 
 
+
+    
 Documentation
 =============
 
 To use CoMeT either on the command-line or in your python code check out the docs.
 
 https://coupling-metrics.readthedocs.io/
+
+
 
 Example Usage
 =============
@@ -68,12 +72,15 @@ Say you are trying to compute the terrestrial coupling index for NARR data (Nort
 Be mindful of memory in this case because currently all the data need to be loaded into memory. This might change in the future.
 
 
-If you want to see a list of metrics ::
+If you want to see a list of metrics
+::
   comet --help
 
 
-To see the arguments for a list of metrics ::
+To see the arguments for a list of metrics
+::
   comet mixing --help
+
 
 
 Python API
@@ -104,9 +111,14 @@ To see a list of metrics ::
   print(cm.list_metrics)
 
 
+
+  
 When to Use CoMeT?
 ==================
 The metrics are meant to facilitate use of the most common land-atmosphere coupling metrics for research purposes. 
+
+
+
 
 
 List of available metrics
@@ -129,6 +141,8 @@ Returns the contribution of surface energy fluxes, dry air entrainment, heat ent
 
 6. `Soil Moisture Memory <http://journals.ametsoc.org/doi/abs/10.1175/1520-0442(1988)001%3C0523:TIOPEO%3E2.0.CO;2>`_ (the statisitcal form)
 Determines the timescale at which initial soil moisture anomalies are retained over time.  The lagged autocorrelation of soil moisture is used to make the determination of memory. 
+
+
 
 
 

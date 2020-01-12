@@ -1,6 +1,9 @@
-========
-Overview
-========
+================================
+Coupling Metrics Toolkit (CoMeT)
+================================
+Calculate various state-of-the-art land-atmosphere coupling metrics
+
+* Free software: MIT license
 
 .. start-badges
 
@@ -27,33 +30,9 @@ Overview
     :alt: Coverage Status
     :target: https://codecov.io/github/abtawfik/coupling-metrics
 
-.. |version| image:: https://img.shields.io/pypi/v/coupling-metrics.svg
-    :alt: PyPI Package latest release
-    :target: https://pypi.org/project/coupling-metrics
-
-.. |wheel| image:: https://img.shields.io/pypi/wheel/coupling-metrics.svg
-    :alt: PyPI Wheel
-    :target: https://pypi.org/project/coupling-metrics
-
-.. |supported-versions| image:: https://img.shields.io/pypi/pyversions/coupling-metrics.svg
-    :alt: Supported versions
-    :target: https://pypi.org/project/coupling-metrics
-
-.. |supported-implementations| image:: https://img.shields.io/pypi/implementation/coupling-metrics.svg
-    :alt: Supported implementations
-    :target: https://pypi.org/project/coupling-metrics
-
-.. |commits-since| image:: https://img.shields.io/github/commits-since/abtawfik/coupling-metrics/v1.0.0.svg
-    :alt: Commits since latest release
-    :target: https://github.com/abtawfik/coupling-metrics/compare/v1.0.0...master
-
-
 
 .. end-badges
 
-Calculate various state-of-the-art land-atmosphere coupling metrics
-
-* Free software: MIT license
 
 Installation
 ============
@@ -70,42 +49,37 @@ You can also install the in-development version with::
 Documentation
 =============
 
+To use CoMeT either on the command-line or in your python code check out the docs.
 
 https://coupling-metrics.readthedocs.io/
 
-
-When to Use CoMeT?
-==================
-The metrics are meant to facilitate use of the most common land-atmosphere coupling metrics for research purposes. 
-
-Usage
-=====
+Example Usage
+=============
 There are two ways to use CoMeT after installation. Using the python API or on the command-line. See both uses below.
 
-Command-line Interface Example
-==============================
-Say you are trying to compute the terrestrial coupling index for NARR data (North American Regional Reanalysis) between latent heat flux and soil moisture for a single year. You invoke this one the command-line::
+CLI Example
+-----------
+
+Say you are trying to compute the terrestrial coupling index for NARR data (North American Regional Reanalysis) between latent heat flux and soil moisture for a single year. You invoke this one the command-line
+::
   comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_2017.nc lhtfl.2017.nc soilm.2017.nc
 
-This will create a file called NARR_lhf_vs_soilm_2017.nc containing the coupling index. If you wish to compute it across multiple years you can simply use the typical bash syntax::
-
-  comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_1979-2017.nc lhtfl.????.nc soilm.????.nc
   
-** Note: be mindful of memory in this case because currently all the data need to be loaded into memory. This might change in the future.
+Be mindful of memory in this case because currently all the data need to be loaded into memory. This might change in the future.
 
 
-If you want to see a list of metrics::
+If you want to see a list of metrics ::
   comet --help
 
 
-To see the arguments for a list of metrics::
+To see the arguments for a list of metrics ::
   comet mixing --help
 
 
 Python API
-==========
+----------
 
-Each metric can also be called directly from python.::
+Each metric can also be called directly from python. ::
 
   import comet as cm
   import xarray as xr
@@ -124,10 +98,15 @@ Each metric can also be called directly from python.::
   terra_coupling.to_netcdf('My_new_NARR_Terra_coupling_lhf_vs_soilm.nc')
 
 
-To see a list of metrics::
+To see a list of metrics ::
 
   import comet as cm
   print(cm.list_metrics)
+
+
+When to Use CoMeT?
+==================
+The metrics are meant to facilitate use of the most common land-atmosphere coupling metrics for research purposes. 
 
 
 List of available metrics

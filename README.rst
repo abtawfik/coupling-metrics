@@ -3,8 +3,6 @@ Coupling Metrics Toolkit (CoMeT)
 ================================
 Calculate various state-of-the-art land-atmosphere coupling metrics
 
-* Free software: MIT license
-
 .. start-badges
 
 .. list-table::
@@ -27,9 +25,9 @@ Calculate various state-of-the-art land-atmosphere coupling metrics
     :alt: Coverage Status
     :target: https://codecov.io/github/abtawfik/coupling-metrics
 
-
 .. end-badges
 
+Free software: MIT license
 
 
    
@@ -38,14 +36,11 @@ Installation
 ============
 
 ::
+   pip install coupling-metrics
 
-    pip install coupling-metrics
-
-You can also install the in-development version with::
-
-    pip install https://github.com/abtawfik/coupling-metrics/archive/master.zip
-
-
+You can also install the in-development version with
+::
+   pip install https://github.com/abtawfik/coupling-metrics/archive/master.zip
 
     
 Documentation
@@ -66,7 +61,7 @@ CLI Example
 
 Say you are trying to compute the terrestrial coupling index for NARR data (North American Regional Reanalysis) between latent heat flux and soil moisture for a single year. You invoke this one the command-line
 ::
-  comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_2017.nc lhtfl.2017.nc soilm.2017.nc
+   comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_2017.nc lhtfl.2017.nc soilm.2017.nc
 
   
 Be mindful of memory in this case because currently all the data need to be loaded into memory. This might change in the future.
@@ -74,12 +69,12 @@ Be mindful of memory in this case because currently all the data need to be load
 
 If you want to see a list of metrics
 ::
-  comet --help
+   comet --help
 
 
 To see the arguments for a list of metrics
 ::
-  comet mixing --help
+   comet mixing --help
 
 
 

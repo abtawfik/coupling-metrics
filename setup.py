@@ -14,7 +14,9 @@ from os.path import splitext
 from setuptools import find_packages
 from setuptools import setup
 
-
+#########################################
+# Function for reading long description #
+#########################################
 def read(*names, **kwargs):
     with io.open( join(dirname(__file__), *names),
                   encoding=kwargs.get('encoding', 'utf8')
@@ -52,7 +54,7 @@ install_reqs = ['click',
 #################
 setup(name='coupling-metrics',
       version='1.0.0',
-      license='MIT',
+      license='MIT License',
       description='Calculate various state-of-the-art land-atmosphere coupling metrics',
       long_description=long_desc,
       author='Ahmed Tawfik',
@@ -65,7 +67,6 @@ setup(name='coupling-metrics',
       zip_safe=False,
       classifiers=['Development Status :: 5 - Production/Stable',
                    'Intended Audience :: Developers',
-                   'License :: OSI Approved :: MIT License',
                    'Operating System :: Unix',
                    'Operating System :: POSIX',
                    'Operating System :: Microsoft :: Windows',

@@ -34,7 +34,6 @@ Free software: MIT license
 
 Installation
 ============
-
 ::
    pip install coupling-metrics
 

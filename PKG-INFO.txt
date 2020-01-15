@@ -1,2 +1,0 @@
-PKG-INFO.txt: ASCII text, with CRLF, CR line terminators
-

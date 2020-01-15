@@ -3,16 +3,9 @@ Coupling Metrics Toolkit (CoMeT)
 ================================
 Calculate various state-of-the-art land-atmosphere coupling metrics
 
-.. start-badges
+|docs| |travis| |codecov|
 
-.. list-table::
-    :stub-columns: 1
 
-    * - docs
-      - |docs|
-    * - tests
-      - | |travis|
-        | |codecov|
 .. |docs| image:: https://readthedocs.org/projects/coupling-metrics/badge/?style=flat
     :target: https://readthedocs.org/projects/coupling-metrics
     :alt: Documentation Status
@@ -25,7 +18,6 @@ Calculate various state-of-the-art land-atmosphere coupling metrics
     :alt: Coverage Status
     :target: https://codecov.io/github/abtawfik/coupling-metrics
 
-.. end-badges
 
 Free software: MIT license
 
@@ -35,11 +27,12 @@ Free software: MIT license
 Installation
 ============
 ::
+
    pip install coupling-metrics
 
-You can also install the in-development version with
-::
-   pip install https://github.com/abtawfik/coupling-metrics/archive/master.zip
+You can also install the in-development version with::
+
+  pip install https://github.com/abtawfik/coupling-metrics/archive/master.zip
 
     
 Documentation
@@ -58,22 +51,22 @@ There are two ways to use CoMeT after installation. Using the python API or on t
 CLI Example
 -----------
 
-Say you are trying to compute the terrestrial coupling index for NARR data (North American Regional Reanalysis) between latent heat flux and soil moisture for a single year. You invoke this one the command-line
-::
-   comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_2017.nc lhtfl.2017.nc soilm.2017.nc
+Say you are trying to compute the terrestrial coupling index for NARR data (North American Regional Reanalysis) between latent heat flux and soil moisture for a single year. You invoke this one the command-line::
+
+  comet coupling --xname=soilm --yname=lhtfl --averaging=season --outname=NARR_lhf_vs_soilm_2017.nc lhtfl.2017.nc soilm.2017.nc
 
   
 Be mindful of memory in this case because currently all the data need to be loaded into memory. This might change in the future.
 
 
-If you want to see a list of metrics
-::
-   comet --help
+If you want to see a list of metrics::
+
+  comet --help
 
 
-To see the arguments for a list of metrics
-::
-   comet mixing --help
+To see the arguments for a list of metrics::
+
+  comet mixing --help
 
 
 

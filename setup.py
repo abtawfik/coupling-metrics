@@ -12,6 +12,12 @@ from os.path import join
 from os.path import splitext
 
 from setuptools import find_packages, setup
+from numpy.distutils.core import setup, Extension
+
+
+lib = [Extension(name='comet.metrics.fortran.hcf'   , sources=['src/comet/metrics/fortran/hcfcalc.f90']),
+       Extension(name='comet.metrics.fortran.ctp'   , sources=['src/comet/metrics/fortran/ctp_hilow.f90']),
+       Extension(name='comet.metrics.fortran.rhtend', sources=['src/comet/metrics/fortran/rh_tendency.f90'])]
 
 #########################################
 # Function for reading long description #
@@ -63,6 +69,7 @@ setup(name='coupling-metrics',
       package_dir={'': 'src'},
       py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
       include_package_data=True,
+      ext_modules=lib,
       zip_safe=False,
       classifiers=['Development Status :: 5 - Production/Stable',
                    'Intended Audience :: Developers',

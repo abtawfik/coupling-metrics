@@ -570,15 +570,14 @@ subroutine hcfcalc ( nlev1  , missing, tmp_in, press_in, qhum_in, hgt_in,  &
 
       integral  =  0.
       below     =  0.
-      if( itop.eq.ibot ) then
-          !---- Case where BCL is within the first layer (i.e. between 1st and 2nd index)
-          between =   (cp_g)  *  0.5*(yaxis(1)+tthresh)  *  (xaxis (1)-pthresh)
-      else
-          between =   (cp_g)  *  0.5*(yaxis1(itop)+tthresh)  *  (xaxis1(itop)-pthresh)
-          do zz=ibot,itop
-             integral(zz)    =  sum(  (cp_g)  *  0.5*(yaxis(zz:itop)+yaxis1(zz:itop))  *  (xaxis(zz:itop)-xaxis1(zz:itop)) )
-             below   (zz+1)  =        (cp_g)  *  yaxis(zz+1)    *  (xaxis(ibot) - xaxis(zz+1))
-          end do
+      !---- Case where BCL is within the first layer (i.e. between 1st and 2nd index)
+      where( psfc.gt.pthresh .or. psfc.ne.missing ) between = (cp_g) * 0.5*(yaxis(1)+tthresh) * (xaxis (1)-pthresh)
+      if( itop.ge.ibot ) then
+         between = (cp_g) * 0.5*(yaxis1(itop)+tthresh) * (xaxis1(itop)-pthresh)
+         do zz=ibot,itop
+            integral(zz)    =  sum(  (cp_g)  *  0.5*(yaxis(zz:itop)+yaxis1(zz:itop))  *  (xaxis(zz:itop)-xaxis1(zz:itop)) )
+            below   (zz+1)  =        (cp_g)  *  yaxis(zz+1)    *  (xaxis(ibot) - xaxis(zz+1))
+         end do
       end if
 
 
